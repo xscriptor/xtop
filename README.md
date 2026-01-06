@@ -9,11 +9,38 @@
 # Previews
 
 <p align="center">
-  <img src="./assets/previews/preview4.png" width="400"/>
-  <img src="./assets/previews/preview3.png" width="400"/>
-  <img src="./assets/previews/preview2.png" width="400"/>
-  <img src="./assets/previews/preview1.png" width="400"/>
+  <a href="./assets/previews/preview1.png">
+    <img src="./assets/previews/preview1.png" alt="Main preview" width="850"/>
+  </a>
 </p>
+
+<details>
+  <summary>More previews</summary>
+
+  <table>
+    <tr>
+      <td align="center">
+        <a href="./assets/previews/preview2.png">
+          <img src="./assets/previews/preview2.png" alt="Preview 2" width="380"/>
+        </a>
+      </td>
+      <td align="center">
+        <a href="./assets/previews/preview3.png">
+          <img src="./assets/previews/preview3.png" alt="Preview 3" width="380"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <a href="./assets/previews/preview4.png">
+          <img src="./assets/previews/preview4.png" alt="Preview 4" width="380"/>
+        </a>
+      </td>
+      <td align="center">
+      </td>
+    </tr>
+  </table>
+</details>
 
 ## Features
 

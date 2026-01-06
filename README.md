@@ -8,6 +8,12 @@
 
 # Previews
 
+<p align="center">
+  <img src="./assets/previews/preview4.png" width="400"/>
+  <img src="./assets/previews/preview3.png" width="400"/>
+  <img src="./assets/previews/preview2.png" width="400"/>
+  <img src="./assets/previews/preview1.png" width="400"/>
+</p>
 
 ## Features
 

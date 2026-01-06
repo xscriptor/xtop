@@ -1,6 +1,13 @@
-# xtop
+<h1 align="center"> Xtop </h1>
 
-**xtop** is a modern, cross-platform terminal-based system monitor written in Rust. It is heavily inspired by `btop` but built with the efficiency and safety of Rust, utilizing `ratatui` for the interface and `sysinfo` for system data.
+<p align="center">xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily inspired by btop, it leverages Rust's safety and performance, powered by ratatui for the interface and sysinfo for real-time metrics.</p>
+
+<p align="center"><img src="./assets/icon.png" width="200" alt="Xscriptor logo" /></p>
+
+---
+
+# Previews
+
 
 ## Features
 
@@ -27,12 +34,12 @@ You can install `xtop` directly using our installer script. This requires `rust`
 
 **Install:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/xtop/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash
 ```
 
 **Uninstall:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/xtop/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/uninstall.sh | bash
 ```
 
 ### Quick Install (Windows PowerShell)
@@ -41,12 +48,12 @@ Requires [Rust (Cargo)](https://rustup.rs/) installed. Run in PowerShell:
 
 **Install:**
 ```powershell
-irm https://raw.githubusercontent.com/yourusername/xtop/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/xscriptordev/xtop/main/install.ps1 | iex
 ```
 
 **Uninstall:**
 ```powershell
-irm https://raw.githubusercontent.com/yourusername/xtop/main/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/xscriptordev/xtop/main/uninstall.ps1 | iex
 ```
 
 ### Prerequisites
@@ -56,7 +63,7 @@ irm https://raw.githubusercontent.com/yourusername/xtop/main/uninstall.ps1 | iex
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/xtop.git
+   git clone https://github.com/xscriptordev/xtop.git
    cd xtop
    ```
 
@@ -89,5 +96,4 @@ irm https://raw.githubusercontent.com/yourusername/xtop/main/uninstall.ps1 | iex
 Currently, `xtop` is zero-config. All preferences (theme, layout) can be toggled at runtime but are reset on restart. Future versions may include a config file.
 
 ## License
-
-MIT
+[MIT](LICENSE)

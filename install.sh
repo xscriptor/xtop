@@ -6,7 +6,7 @@
 set -e
 
 APP_NAME="xtop"
-REPO_URL="https://github.com/yourusername/xtop.git" # Replace with actual repo URL if known, or generic
+REPO_URL="https://github.com/xscriptordev/xtop.git" # Replace with actual repo URL if known, or generic
 INSTALL_DIR="/usr/local/bin"
 
 # Colors

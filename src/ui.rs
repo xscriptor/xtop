@@ -201,7 +201,7 @@ fn render_memory(f: &mut Frame, app: &App, area: Rect) {
     // RAM Stats
     let total_mem = app.sys.total_memory();
     let used_mem = app.sys.used_memory();
-    let free_mem = app.sys.free_memory();
+    let _free_mem = app.sys.free_memory();
     let available_mem = app.sys.available_memory();
     
     let mem_pct = if total_mem > 0 { (used_mem as f64 / total_mem as f64 * 100.0) as u16 } else { 0 };

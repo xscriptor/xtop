@@ -3,6 +3,7 @@ use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind, Disks, Net
 use std::collections::HashMap;
 use ratatui::widgets::TableState;
 
+#[allow(dead_code)]
 pub enum InputMode {
     Normal,
     Editing,
@@ -35,18 +36,21 @@ pub struct App {
     pub should_quit: bool,
     pub theme_list: Vec<String>,
     pub selected_theme_index: usize,
+    #[allow(dead_code)]
     pub show_help: bool,
     pub layout_mode: LayoutMode,
     
     // History Data for Charts
     pub cpu_history: Vec<Vec<(f64, f64)>>,
     pub mem_history: Vec<(f64, f64)>,
+    #[allow(dead_code)]
     pub swap_history: Vec<(f64, f64)>,
     pub net_rx_history: Vec<(f64, f64)>,
     pub net_tx_history: Vec<(f64, f64)>,
     pub tick_count: f64,
     
     // UI States
+    #[allow(dead_code)]
     pub process_table_state: TableState,
 }
 

@@ -16,6 +16,7 @@ impl Theme {
         self.palette[7]
     }
     
+    #[allow(dead_code)]
     pub fn graph_colors(&self) -> Vec<Color> {
         vec![
             self.palette[1], // Red

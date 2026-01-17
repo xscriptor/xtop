@@ -3,7 +3,7 @@ mod theme;
 mod tui;
 mod ui;
 
-use std::{error::Error, io, time::Duration};
+use std::{error::Error, time::Duration};
 use crossterm::event::{self, Event, KeyCode};
 use app::App;
 

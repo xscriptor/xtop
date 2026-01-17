@@ -63,17 +63,42 @@
 
 ### Quick Install (macOS/Linux)
 
-You can install `xtop` directly using our installer script. This requires `rust` (cargo) to be installed on your system.
+The installer script automatically detects your distribution and installs all required dependencies (including Rust if needed).
 
-**Install:**
+**Install with curl:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash
 ```
 
+**Or with wget:**
+```bash
+wget -qO- https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash
+```
+
 **Uninstall:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash -s -- --uninstall
 ```
+
+<details>
+<summary>Installer Options</summary>
+
+You can also run the installer with additional options:
+
+```bash
+# Check dependencies without installing
+./install.sh --check-deps
+
+# Install only dependencies (Rust, build tools)
+./install.sh --install-deps
+
+# Show help
+./install.sh --help
+```
+
+**Supported distributions:** Arch, Debian/Ubuntu, Fedora/RHEL, openSUSE, Alpine, and derivatives.
+
+</details>
 
 ### Quick Install (Windows PowerShell)
 
@@ -88,9 +113,6 @@ irm https://raw.githubusercontent.com/xscriptordev/xtop/main/install.ps1 | iex
 ```powershell
 irm https://raw.githubusercontent.com/xscriptordev/xtop/main/uninstall.ps1 | iex
 ```
-
-### Prerequisites
-- [Rust & Cargo](https://www.rust-lang.org/tools/install) installed.
 
 ### Build from Source
 

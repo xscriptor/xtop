@@ -174,13 +174,7 @@ install_rust() {
         sh "$rustup_script" -y --default-toolchain stable
         rm -f "$rustup_script"
         
-        # Source cargo environment
-        if [ -f "$HOME/.cargo/env" ]; then
-            # shellcheck source=/dev/null
-            source "$HOME/.cargo/env"
-        fi
-        
-        # Also add to PATH for current session
+        # Add cargo to PATH for current session (avoid 'source' which can cause issues with curl|bash)
         export PATH="$HOME/.cargo/bin:$PATH"
     fi
     
@@ -333,9 +327,9 @@ do_install() {
     log_success "$APP_NAME installed successfully!"
     echo -e "Run it with: ${BOLD}$APP_NAME${NC}"
     
-    # Verify installation
-    if command -v "$APP_NAME" &> /dev/null; then
-        echo -e "Version: $($APP_NAME --version 2>/dev/null || echo 'unknown')"
+    # Verify binary exists (don't run it as it may be interactive)
+    if [ -x "$INSTALL_DIR/$APP_NAME" ]; then
+        log_success "Binary installed at $INSTALL_DIR/$APP_NAME"
     fi
 }
 
@@ -412,3 +406,4 @@ main() {
 }
 
 main "$@"
+exit 0

@@ -1,8 +1,14 @@
 <h1 align="center"> Xtop </h1>
 
-<p align="center">xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily inspired by btop, it leverages Rust's safety and performance, powered by ratatui for the interface and sysinfo for real-time metrics.</p>
+<div align="center">
 
-<p align="center"><img src="./assets/icon.png" width="200" alt="Xscriptor logo" /></p>
+![rust](https://xscriptordev.github.io/badges/languages/rust.svg) ![mit](https://xscriptordev.github.io/badges/licenses/mit.svg) ![shell](https://xscriptordev.github.io/badges/languages/shell.svg) ![powershell](https://xscriptordev.github.io/badges/languages/powershell.svg) ![xtop](https://xscriptordev.github.io/badges/software/xtop.svg)
+
+xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily inspired by btop, it leverages Rust's safety and performance, powered by ratatui for the interface and sysinfo for real-time metrics.
+
+</div>
+
+<p align="center"><img src="./assets/icon.png" width="100" alt="Xscriptor logo" /></p>
 
 ---
 

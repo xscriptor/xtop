@@ -156,5 +156,13 @@ irm https://raw.githubusercontent.com/xscriptordev/xtop/main/uninstall.ps1 | iex
 
 Currently, `xtop` is zero-config. All preferences (theme, layout) can be toggled at runtime but are reset on restart. Future versions may include a config file.
 
+## Contributing
+
+Contributions are always welcome! Please read the [contribution guidelines](CONTRIBUTING.md) first.
+
 ## License
 [MIT](LICENSE)
+
+<div align="center">
+<a href="https://github.com/xscriptor">---X---</a>
+</div>

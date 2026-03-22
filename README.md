@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![rust](https://xscriptordev.github.io/badges/languages/rust.svg) ![mit](https://xscriptordev.github.io/badges/licenses/mit.svg) ![shell](https://xscriptordev.github.io/badges/languages/shell.svg) ![powershell](https://xscriptordev.github.io/badges/languages/powershell.svg) ![xtop](https://xscriptordev.github.io/badges/software/xtop.svg)
+![rust](https://xscriptor.github.io/badges/languages/rust.svg) ![mit](https://xscriptor.github.io/badges/licenses/mit.svg) ![shell](https://xscriptor.github.io/badges/languages/shell.svg) ![powershell](https://xscriptor.github.io/badges/languages/powershell.svg) ![xtop](https://xscriptor.github.io/badges/software/xtop.svg)
 
 xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily inspired by btop, it leverages Rust's safety and performance, powered by ratatui for the interface and sysinfo for real-time metrics.
 
@@ -73,17 +73,17 @@ The installer script automatically detects your distribution and installs all re
 
 **Install with curl:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash
 ```
 
 **Or with wget:**
 ```bash
-wget -qO- https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash
 ```
 
 **Uninstall:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xscriptordev/xtop/main/install.sh | bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash -s -- --uninstall
 ```
 
 <details>
@@ -112,19 +112,19 @@ Requires [Rust (Cargo)](https://rustup.rs/) installed. Run in PowerShell:
 
 **Install:**
 ```powershell
-irm https://raw.githubusercontent.com/xscriptordev/xtop/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/xscriptor/xtop/main/install.ps1 | iex
 ```
 
 **Uninstall:**
 ```powershell
-irm https://raw.githubusercontent.com/xscriptordev/xtop/main/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/xscriptor/xtop/main/uninstall.ps1 | iex
 ```
 
 ### Build from Source
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/xscriptordev/xtop.git
+   git clone https://github.com/xscriptor/xtop.git
    cd xtop
    ```
 

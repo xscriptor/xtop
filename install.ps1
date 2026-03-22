@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 
 $AppName = "xtop"
-$RepoUrl = "https://github.com/xscriptordev/xtop.git" # Replace with actual repo URL
+$RepoUrl = "https://github.com/xscriptor/xtop.git" # Replace with actual repo URL
 $InstallDir = "$env:USERPROFILE\.cargo\bin" # Standard Cargo bin location
 
 Write-Host "Installing $AppName..." -ForegroundColor Green

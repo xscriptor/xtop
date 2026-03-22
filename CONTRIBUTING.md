@@ -5,7 +5,7 @@ First off, thank you for considering contributing to `xtop`! It's people like yo
 ## How Can I Contribute?
 
 ### Reporting Bugs
-- Ensure the bug was not already reported by searching on GitHub under [Issues](https://github.com/xscriptordev/xtop/issues).
+- Ensure the bug was not already reported by searching on GitHub under [Issues](https://github.com/xscriptor/xtop/issues).
 - If you're unable to find an open issue addressing the problem, open a new one. Be sure to include a title and clear description, as much relevant information as possible, and a code sample or an executable test case demonstrating the expected behavior that is not occurring.
 
 ### Suggesting Enhancements
@@ -23,7 +23,7 @@ First off, thank you for considering contributing to `xtop`! It's people like yo
 
 ```bash
 # Clone the repository
-git clone https://github.com/xscriptordev/xtop.git
+git clone https://github.com/xscriptor/xtop.git
 cd xtop
 
 # Build the project

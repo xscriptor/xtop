@@ -1,0 +1,11 @@
+[package]
+name = "xtop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+xtop-core = { path = "../xtop-core" }
+xtop-tui = { path = "../xtop-tui" }
+crossterm.workspace = true
+anyhow.workspace = true

@@ -1,6 +1,7 @@
-use crate::color::to_color;
+use crate::color::{gauge_gradient, to_color};
 use crate::format::format_bytes;
 use ratatui::prelude::*;
+use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Gauge};
 use ratatui::Frame;
 use xtop_core::application::state::AppState;
@@ -12,6 +13,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let block = Block::default()
         .title("Storage")
         .borders(Borders::ALL)
+        .border_set(border::DOUBLE)
         .style(Style::default().fg(fg).bg(bg));
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -33,8 +35,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
         if i >= chunks.len() {
             break;
         }
-        let is_alert = disk.percent > state.alerts.disk_high;
-        let color_idx = if is_alert { 1 } else { 4 };
+        let color_idx = gauge_gradient(disk.percent, state.alerts.disk_high);
         let label = format!(
             "{}  Tot: {}  Use: {}  Free: {}",
             disk.mount_point,

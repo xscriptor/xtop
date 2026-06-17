@@ -1,6 +1,7 @@
-use crate::color::to_color;
+use crate::color::{gauge_gradient, to_color};
 use crate::format::format_bytes;
 use ratatui::prelude::*;
+use ratatui::symbols::border;
 use ratatui::widgets::{Axis, Block, Borders, Chart, Dataset, Gauge, GraphType};
 use ratatui::Frame;
 use xtop_core::application::state::AppState;
@@ -11,7 +12,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let snap = state.snapshot();
 
     let mem_alert = snap.memory.percent > state.alerts.mem_high;
-    let mem_color_idx = if mem_alert { 1 } else { 2 };
+    let mem_color_idx = if mem_alert { 1 } else { gauge_gradient(snap.memory.percent, state.alerts.mem_high) };
 
     let mut title = "Memory".to_string();
     if mem_alert {
@@ -21,6 +22,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
+        .border_set(border::ROUNDED)
         .style(Style::default().fg(fg).bg(bg));
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -83,6 +85,7 @@ fn render_swap_gauge(
     bg: Color,
 ) {
     let swap_pct = snap.swap.percent as u16;
+    let color_idx = gauge_gradient(snap.swap.percent, state.alerts.mem_high);
     let label = format!(
         "SWP: {} / {} ({:>3.0}%)",
         format_bytes(snap.swap.used),
@@ -92,7 +95,7 @@ fn render_swap_gauge(
     let gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(to_color(&state.current_theme.palette[3]))
+                .fg(to_color(&state.current_theme.palette[color_idx]))
                 .bg(bg),
         )
         .percent(swap_pct)
@@ -119,7 +122,15 @@ fn render_chart(f: &mut Frame, state: &AppState, area: Rect, _bg: Color) {
 
     let chart = Chart::new(datasets)
         .block(Block::default().borders(Borders::TOP))
-        .x_axis(Axis::default().bounds([x_min, x_max]))
-        .y_axis(Axis::default().bounds([0.0, 100.0]));
+        .x_axis(
+            Axis::default()
+                .bounds([x_min, x_max])
+                .labels(vec![Span::raw("")]),
+        )
+        .y_axis(
+            Axis::default()
+                .bounds([0.0, 100.0])
+                .labels(vec![Span::raw("0%"), Span::raw("50%"), Span::raw("100%")]),
+        );
     f.render_widget(chart, area);
 }

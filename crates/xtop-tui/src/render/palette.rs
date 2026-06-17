@@ -1,15 +1,16 @@
 use crate::color::to_color;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
-use xtop_core::application::state::AppState;
+use xtop_core::application::state::{AppState, PalettePage};
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let fg = to_color(state.current_theme.fg());
     let bg = to_color(state.current_theme.bg());
+    let accent = to_color(&state.current_theme.palette[6]);
 
-    let popup_width = (area.width as f64 * 0.6) as u16;
-    let popup_height = (area.height as f64 * 0.6) as u16;
+    let popup_width = (area.width as f64 * 0.6).min(60.0) as u16;
+    let popup_height = (area.height as f64 * 0.6).min(30.0) as u16;
     let popup_x = (area.width.saturating_sub(popup_width)) / 2;
     let popup_y = (area.height.saturating_sub(popup_height)) / 2;
 
@@ -20,12 +21,25 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
         height: popup_height,
     };
 
+    let title = state.palette.title();
     let block = Block::default()
-        .title("Command Palette")
+        .title(title)
         .borders(Borders::ALL)
+        .border_style(Style::default().fg(accent))
         .style(Style::default().fg(fg).bg(bg));
     let inner = block.inner(popup);
     f.render_widget(block, popup);
+
+    let hint = if state.palette.page == PalettePage::Main {
+        " Filter: type to search · navigate with ↑↓ · select with Enter"
+    } else {
+        " Filter themes · Enter to select · Esc/Bksp to go back"
+    };
+    let input_label = match state.palette.page {
+        PalettePage::Main => "Action",
+        PalettePage::Themes => "Theme",
+        PalettePage::Layouts => "Layout",
+    };
 
     let search_area = Rect {
         x: inner.x,
@@ -33,21 +47,14 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
         width: inner.width,
         height: 3,
     };
-    let input_text = format!(
-        " {}_",
-        if state.palette.query.is_empty() {
-            String::new()
-        } else {
-            state.palette.query.clone()
-        }
-    );
+    let input_text = if state.palette.query.is_empty() {
+        format!(" {}_", hint)
+    } else {
+        format!(" {}: {}", input_label, state.palette.query)
+    };
     let input = Paragraph::new(input_text.as_str())
-        .style(Style::default().fg(fg).bg(bg))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Search commands"),
-        );
+        .style(Style::default().fg(accent).bg(bg))
+        .block(Block::default().borders(Borders::ALL));
     f.render_widget(input, search_area);
 
     let list_area = Rect {
@@ -61,22 +68,22 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
         .palette
         .filtered
         .iter()
-        .enumerate()
-        .map(|(idx, &entry_idx)| {
+        .map(|&entry_idx| {
             let entry = &state.palette.entries[entry_idx];
-            let is_selected = idx == state.palette.selected;
-            let style = if is_selected {
-                Style::default()
-                    .fg(bg)
-                    .bg(fg)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(fg)
-            };
-            ListItem::new(entry.label.as_str()).style(style)
+            ListItem::new(entry.label.as_str()).style(Style::default().fg(fg))
         })
         .collect();
 
-    let list = List::new(items);
-    f.render_widget(list, list_area);
+    let mut list_state = ListState::default();
+    list_state.select(Some(state.palette.selected));
+
+    let list = List::new(items)
+        .highlight_style(
+            Style::default()
+                .fg(bg)
+                .bg(fg)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol("▸ ");
+    f.render_stateful_widget(list, list_area, &mut list_state);
 }

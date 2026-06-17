@@ -1,7 +1,7 @@
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use std::fs;
 use std::time::{Duration, Instant};
-use xtop_core::application::state::{AppState, Config, InputMode};
+use xtop_core::application::state::{AppState, Config, InputMode, PalettePage};
 use xtop_core::domain::keybinding::Action;
 use xtop_core::infrastructure::config;
 use xtop_core::infrastructure::layout_loader;
@@ -168,34 +168,40 @@ fn main() -> anyhow::Result<()> {
                         }
                         _ => {}
                     },
-                    InputMode::CommandPalette => match key.code {
-                        KeyCode::Esc => {
-                            state.close_palette();
-                        }
-                        KeyCode::Enter => {
-                            if let Some(action) = state.palette_selected_action() {
+                    InputMode::CommandPalette => {
+                        let is_main = state.palette.page == PalettePage::Main;
+                        match key.code {
+                            KeyCode::Esc => {
                                 state.close_palette();
-                                state.execute_action(&action);
-                                if action == Action::Quit {
-                                    save_config(&state);
+                            }
+                            KeyCode::Enter => {
+                                if let Some(action) = state.palette_selected_action() {
+                                    state.execute_action(&action);
+                                    if action == Action::Quit {
+                                        save_config(&state);
+                                    }
                                 }
                             }
+                            KeyCode::Down => {
+                                state.palette_select_next();
+                            }
+                            KeyCode::Up => {
+                                state.palette_select_prev();
+                            }
+                            KeyCode::Char(c) => {
+                                state.palette.query.push(c);
+                                state.palette_filter();
+                            }
+                            KeyCode::Backspace => {
+                                if state.palette.query.is_empty() && !is_main {
+                                    state.palette_navigate_to(PalettePage::Main);
+                                } else {
+                                    state.palette.query.pop();
+                                    state.palette_filter();
+                                }
+                            }
+                            _ => {}
                         }
-                        KeyCode::Down => {
-                            state.palette_select_next();
-                        }
-                        KeyCode::Up => {
-                            state.palette_select_prev();
-                        }
-                        KeyCode::Char(c) => {
-                            state.palette.query.push(c);
-                            state.palette_filter();
-                        }
-                        KeyCode::Backspace => {
-                            state.palette.query.pop();
-                            state.palette_filter();
-                        }
-                        _ => {}
                     },
                 }
             }

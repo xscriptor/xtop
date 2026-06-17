@@ -147,17 +147,33 @@ pub struct PaletteEntry {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum PalettePage {
+    Main,
+    Themes,
+    Layouts,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct PaletteState {
     pub open: bool,
     pub query: String,
     pub selected: usize,
     pub entries: Vec<PaletteEntry>,
     pub filtered: Vec<usize>,
+    pub page: PalettePage,
 }
 
 impl PaletteState {
     pub fn filtered_entries(&self) -> Vec<&PaletteEntry> {
         self.filtered.iter().map(|&i| &self.entries[i]).collect()
+    }
+
+    pub fn title(&self) -> &str {
+        match self.page {
+            PalettePage::Main => "Command Palette",
+            PalettePage::Themes => "Select Theme",
+            PalettePage::Layouts => "Select Layout",
+        }
     }
 }
 
@@ -268,6 +284,7 @@ impl AppState {
                 selected: 0,
                 entries: Vec::new(),
                 filtered: Vec::new(),
+                page: PalettePage::Main,
             },
             keybindings: config.keybindings,
         }
@@ -374,46 +391,72 @@ impl AppState {
         self.should_quit = true;
     }
 
+    pub fn rebuild_palette(&mut self) {
+        self.palette.entries.clear();
+        match self.palette.page {
+            PalettePage::Main => {
+                self.palette.entries.push(PaletteEntry {
+                    label: "Themes →".into(),
+                    action: Action::NavigateThemes,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Layouts →".into(),
+                    action: Action::NavigateLayouts,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Toggle Fullscreen".into(),
+                    action: Action::ToggleFullscreen,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Cycle Fullscreen Widget".into(),
+                    action: Action::CycleFullscreen,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Search Processes".into(),
+                    action: Action::Search,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Toggle Help".into(),
+                    action: Action::ToggleHelp,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Exit".into(),
+                    action: Action::Quit,
+                });
+            }
+            PalettePage::Themes => {
+                for (i, theme) in self.themes.iter().enumerate() {
+                    self.palette.entries.push(PaletteEntry {
+                        label: theme.name.clone(),
+                        action: Action::SelectTheme(i),
+                    });
+                }
+            }
+            PalettePage::Layouts => {
+                for (i, layout) in self.layout_defs.iter().enumerate() {
+                    self.palette.entries.push(PaletteEntry {
+                        label: layout.name.clone(),
+                        action: Action::SelectLayout(i),
+                    });
+                }
+            }
+        }
+        self.palette_filter();
+    }
+
     pub fn open_palette(&mut self) {
         self.palette.open = true;
         self.palette.query.clear();
         self.palette.selected = 0;
-        self.palette.entries.clear();
+        self.palette.page = PalettePage::Main;
+        self.rebuild_palette();
+    }
 
-        for (i, theme) in self.themes.iter().enumerate() {
-            self.palette.entries.push(PaletteEntry {
-                label: format!("Theme: {}", theme.name),
-                action: Action::SelectTheme(i),
-            });
-        }
-        for (i, layout) in self.layout_defs.iter().enumerate() {
-            self.palette.entries.push(PaletteEntry {
-                label: format!("Layout: {}", layout.name),
-                action: Action::SelectLayout(i),
-            });
-        }
-        self.palette.entries.push(PaletteEntry {
-            label: "Toggle Fullscreen".into(),
-            action: Action::ToggleFullscreen,
-        });
-        self.palette.entries.push(PaletteEntry {
-            label: "Cycle Fullscreen Widget".into(),
-            action: Action::CycleFullscreen,
-        });
-        self.palette.entries.push(PaletteEntry {
-            label: "Search Processes".into(),
-            action: Action::Search,
-        });
-        self.palette.entries.push(PaletteEntry {
-            label: "Toggle Help".into(),
-            action: Action::ToggleHelp,
-        });
-        self.palette.entries.push(PaletteEntry {
-            label: "Quit".into(),
-            action: Action::Quit,
-        });
-
-        self.palette_filter();
+    pub fn palette_navigate_to(&mut self, page: PalettePage) {
+        self.palette.page = page;
+        self.palette.query.clear();
+        self.palette.selected = 0;
+        self.rebuild_palette();
     }
 
     pub fn palette_filter(&mut self) {
@@ -459,6 +502,7 @@ impl AppState {
 
     pub fn close_palette(&mut self) {
         self.palette.open = false;
+        self.palette.page = PalettePage::Main;
         self.input_mode = InputMode::Normal;
     }
 
@@ -487,6 +531,18 @@ impl AppState {
                 self.layout_mode = self.save_layout_mode();
                 self.full_screen_widget = FullScreenWidget::None;
             }
+            Action::NavigateThemes => {
+                self.palette_navigate_to(PalettePage::Themes);
+                return;
+            }
+            Action::NavigateLayouts => {
+                self.palette_navigate_to(PalettePage::Layouts);
+                return;
+            }
+        }
+        // Close palette after executing any action (except navigation which returns above)
+        if self.input_mode == InputMode::CommandPalette {
+            self.close_palette();
         }
     }
 }

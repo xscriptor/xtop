@@ -66,6 +66,8 @@ pub enum Action {
     Cancel,
     SelectTheme(usize),
     SelectLayout(usize),
+    NavigateThemes,
+    NavigateLayouts,
 }
 
 impl Keybindings {

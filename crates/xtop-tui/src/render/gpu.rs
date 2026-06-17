@@ -1,6 +1,7 @@
 use crate::color::to_color;
 use crate::format::format_bytes;
 use ratatui::prelude::*;
+use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Gauge, Paragraph, Wrap};
 use ratatui::Frame;
 use xtop_core::application::state::AppState;
@@ -12,6 +13,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let block = Block::default()
         .title("GPU")
         .borders(Borders::ALL)
+        .border_set(border::ROUNDED)
         .style(Style::default().fg(fg).bg(bg));
     let inner = block.inner(area);
     f.render_widget(block, area);

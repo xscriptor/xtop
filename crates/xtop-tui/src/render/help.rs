@@ -1,5 +1,6 @@
 use crate::color::to_color;
 use ratatui::prelude::*;
+use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 use xtop_core::application::state::AppState;
@@ -43,6 +44,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let block = Block::default()
         .title("Help")
         .borders(Borders::ALL)
+        .border_set(border::DOUBLE)
         .style(Style::default().fg(fg).bg(bg));
     let p = Paragraph::new(text)
         .block(block)

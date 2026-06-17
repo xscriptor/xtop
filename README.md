@@ -58,12 +58,12 @@ xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily ins
   - **Disks:** Storage usage visualization.
   - **Processes:** List of running processes sorted by CPU usage.
 - **Theming:**
-  - Includes 13 built-in color schemes (e.g., Dracula-like 'x', Madrid, Tokio, etc.).
-  - Cycle through themes instantly without configuration files.
+  - 13 ready-to-use color schemes + custom themes via JSONC files.
+  - Cycle through themes instantly with `t` / `T`.
 - **Layouts:**
-  - **Dashboard:** Balanced view of all components (Default).
-  - **Vertical:** Stacked view, good for narrow terminals.
-  - **Process Focus:** Maximizes space for the process list while keeping essential stats visible.
+  - 7 built-in layouts (Dashboard, Vertical, Horizontal, CPU/Memory/Network/Process Focus).
+  - Custom layouts via JSONC files — define your own widget tree.
+  - Full-screen mode for any widget.
 
 ## Installation
 
@@ -142,7 +142,10 @@ irm https://raw.githubusercontent.com/xscriptor/xtop/main/uninstall.ps1 | iex
 | `q` | Quit application |
 | `t` | Next Color Theme |
 | `T` | Previous Color Theme |
-| `l` | Toggle Layout Mode (Dashboard -> Vertical -> Process Focus) |
+| `l` | Next Layout Mode (built-in + custom) |
+| `f` | Toggle fullscreen widget |
+| `F` | Cycle fullscreen widget |
+| `/` | Search / filter processes |
 
 ### Modules
 
@@ -152,9 +155,18 @@ irm https://raw.githubusercontent.com/xscriptor/xtop/main/uninstall.ps1 | iex
 4. **Network**: Total downloaded (RX) and uploaded (TX) data.
 5. **Processes**: A scrolling list of the top 50 processes sorted by CPU usage.
 
-## Configuration
+## Customization
 
-Currently, `xtop` is zero-config. All preferences (theme, layout) can be toggled at runtime but are reset on restart. Future versions may include a config file.
+xtop supports custom color themes and layout modes defined as JSONC files.
+
+**[→ Full customization guide](docs/customization.md)**
+
+| Feature | Location | Format |
+|---------|----------|--------|
+| Themes | `~/.config/xtop/themes/*.jsonc` | 16-entry hex color palette |
+| Layouts | `~/.config/xtop/layouts/*.jsonc` | Recursive split/widget tree |
+
+The built-in `miami` theme (black background, neon accents) is always available. Starter theme and layout files ship in the `assets/` directory.
 
 ## Contributing
 

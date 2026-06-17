@@ -1,3 +1,4 @@
+use crate::color::to_color;
 use crate::format::format_bytes;
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, Borders, Chart, Dataset, Gauge, GraphType};
@@ -5,9 +6,8 @@ use ratatui::Frame;
 use xtop_core::application::state::AppState;
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
-    let fg = rgb(state.current_theme.fg());
-    let bg = rgb(state.current_theme.bg());
+    let fg = to_color(state.current_theme.fg());
+    let bg = to_color(state.current_theme.bg());
     let snap = state.snapshot();
 
     let mem_alert = snap.memory.percent > state.alerts.mem_high;
@@ -57,7 +57,6 @@ fn render_ram_gauge(
     bg: Color,
     color_idx: usize,
 ) {
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
     let mem_pct = snap.memory.percent as u16;
     let label = format!(
         "RAM: {} / {} ({:>3.0}%)",
@@ -68,7 +67,7 @@ fn render_ram_gauge(
     let gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(rgb(&state.current_theme.palette[color_idx]))
+                .fg(to_color(&state.current_theme.palette[color_idx]))
                 .bg(bg),
         )
         .percent(mem_pct)
@@ -83,7 +82,6 @@ fn render_swap_gauge(
     snap: &xtop_core::domain::metrics::SystemSnapshot,
     bg: Color,
 ) {
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
     let swap_pct = snap.swap.percent as u16;
     let label = format!(
         "SWP: {} / {} ({:>3.0}%)",
@@ -94,7 +92,7 @@ fn render_swap_gauge(
     let gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(rgb(&state.current_theme.palette[3]))
+                .fg(to_color(&state.current_theme.palette[3]))
                 .bg(bg),
         )
         .percent(swap_pct)
@@ -103,8 +101,6 @@ fn render_swap_gauge(
 }
 
 fn render_chart(f: &mut Frame, state: &AppState, area: Rect, _bg: Color) {
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
-
     let mem_data: Vec<(f64, f64)> = state.history.mem.iter().copied().collect();
     if mem_data.is_empty() {
         return;
@@ -114,7 +110,7 @@ fn render_chart(f: &mut Frame, state: &AppState, area: Rect, _bg: Color) {
         .name("RAM Usage")
         .marker(symbols::Marker::Braille)
         .graph_type(GraphType::Line)
-        .style(Style::default().fg(rgb(&state.current_theme.palette[2])))
+        .style(Style::default().fg(to_color(&state.current_theme.palette[2])))
         .data(&mem_data)];
 
     let x_min = mem_data.first().map(|&(x, _)| x).unwrap_or(0.0);

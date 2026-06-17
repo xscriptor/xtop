@@ -1,4 +1,6 @@
 use crate::application::history::MetricsHistory;
+use crate::domain::keybinding::{Action, Keybindings};
+use crate::domain::layout::LayoutDef;
 use crate::domain::metrics::SystemSnapshot;
 use crate::domain::system_info::SystemDataProvider;
 use crate::domain::theme::Theme;
@@ -52,6 +54,24 @@ pub enum EffectiveLayout {
     NetworkFocus,
     ProcessFocus,
     Minimal,
+}
+
+fn layout_index_from_mode(mode: LayoutMode, defs: &[LayoutDef]) -> usize {
+    let label = mode.label();
+    defs.iter().position(|d| d.name == label).unwrap_or(0)
+}
+
+fn mode_from_layout_index(index: usize) -> LayoutMode {
+    match index {
+        0 => LayoutMode::Dashboard,
+        1 => LayoutMode::Vertical,
+        2 => LayoutMode::Horizontal,
+        3 => LayoutMode::CpuFocus,
+        4 => LayoutMode::MemoryFocus,
+        5 => LayoutMode::NetworkFocus,
+        6 => LayoutMode::ProcessFocus,
+        _ => LayoutMode::Dashboard,
+    }
 }
 
 pub fn detect_effective_layout(width: u16, height: u16, user_mode: LayoutMode) -> EffectiveLayout {
@@ -120,10 +140,32 @@ impl FullScreenWidget {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PaletteEntry {
+    pub label: String,
+    pub action: Action,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PaletteState {
+    pub open: bool,
+    pub query: String,
+    pub selected: usize,
+    pub entries: Vec<PaletteEntry>,
+    pub filtered: Vec<usize>,
+}
+
+impl PaletteState {
+    pub fn filtered_entries(&self) -> Vec<&PaletteEntry> {
+        self.filtered.iter().map(|&i| &self.entries[i]).collect()
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InputMode {
     Normal,
     Searching,
+    CommandPalette,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -150,16 +192,19 @@ pub struct Config {
     pub update_interval_ms: u64,
     pub history_points: usize,
     pub alerts: AlertThresholds,
+    #[serde(default)]
+    pub keybindings: Keybindings,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            theme: "x".to_string(),
+            theme: "miami".to_string(),
             layout_mode: LayoutMode::Dashboard,
             update_interval_ms: 1000,
             history_points: 100,
             alerts: AlertThresholds::default(),
+            keybindings: Keybindings::default(),
         }
     }
 }
@@ -169,6 +214,8 @@ pub struct AppState {
     pub history: MetricsHistory,
     pub should_quit: bool,
     pub layout_mode: LayoutMode,
+    pub layout_index: usize,
+    pub layout_defs: Vec<LayoutDef>,
     pub current_theme: Theme,
     pub themes: Vec<Theme>,
     pub selected_theme_index: usize,
@@ -180,20 +227,30 @@ pub struct AppState {
     pub alerts: AlertThresholds,
     pub update_interval_ms: u64,
     pub config_path: String,
+    pub palette: PaletteState,
+    pub keybindings: Keybindings,
 }
 
 impl AppState {
-    pub fn new(provider: Box<dyn SystemDataProvider>, themes: Vec<Theme>, config: Config) -> Self {
+    pub fn new(
+        provider: Box<dyn SystemDataProvider>,
+        themes: Vec<Theme>,
+        config: Config,
+        layout_defs: Vec<LayoutDef>,
+    ) -> Self {
         let selected_theme_index = themes
             .iter()
             .position(|t| t.name == config.theme)
             .unwrap_or(0);
         let current_theme = themes[selected_theme_index].clone();
+        let layout_index = layout_index_from_mode(config.layout_mode, &layout_defs);
         Self {
             provider,
             history: MetricsHistory::new(config.history_points),
             should_quit: false,
             layout_mode: config.layout_mode,
+            layout_index,
+            layout_defs,
             current_theme,
             themes,
             selected_theme_index,
@@ -205,7 +262,23 @@ impl AppState {
             alerts: config.alerts,
             update_interval_ms: config.update_interval_ms,
             config_path: String::new(),
+            palette: PaletteState {
+                open: false,
+                query: String::new(),
+                selected: 0,
+                entries: Vec::new(),
+                filtered: Vec::new(),
+            },
+            keybindings: config.keybindings,
         }
+    }
+
+    pub fn current_layout(&self) -> &LayoutDef {
+        &self.layout_defs[self.layout_index]
+    }
+
+    pub fn save_layout_mode(&self) -> LayoutMode {
+        mode_from_layout_index(self.layout_index)
     }
 
     pub fn on_tick(&mut self) {
@@ -256,8 +329,13 @@ impl AppState {
     }
 
     pub fn next_layout(&mut self) {
-        self.layout_mode = self.layout_mode.next();
+        self.layout_index = (self.layout_index + 1) % self.layout_defs.len();
+        self.layout_mode = self.save_layout_mode();
         self.full_screen_widget = FullScreenWidget::None;
+    }
+
+    pub fn current_layout_name(&self) -> &str {
+        &self.layout_defs[self.layout_index].name
     }
 
     pub fn toggle_fullscreen(&mut self) {
@@ -294,6 +372,122 @@ impl AppState {
 
     pub fn quit(&mut self) {
         self.should_quit = true;
+    }
+
+    pub fn open_palette(&mut self) {
+        self.palette.open = true;
+        self.palette.query.clear();
+        self.palette.selected = 0;
+        self.palette.entries.clear();
+
+        for (i, theme) in self.themes.iter().enumerate() {
+            self.palette.entries.push(PaletteEntry {
+                label: format!("Theme: {}", theme.name),
+                action: Action::SelectTheme(i),
+            });
+        }
+        for (i, layout) in self.layout_defs.iter().enumerate() {
+            self.palette.entries.push(PaletteEntry {
+                label: format!("Layout: {}", layout.name),
+                action: Action::SelectLayout(i),
+            });
+        }
+        self.palette.entries.push(PaletteEntry {
+            label: "Toggle Fullscreen".into(),
+            action: Action::ToggleFullscreen,
+        });
+        self.palette.entries.push(PaletteEntry {
+            label: "Cycle Fullscreen Widget".into(),
+            action: Action::CycleFullscreen,
+        });
+        self.palette.entries.push(PaletteEntry {
+            label: "Search Processes".into(),
+            action: Action::Search,
+        });
+        self.palette.entries.push(PaletteEntry {
+            label: "Toggle Help".into(),
+            action: Action::ToggleHelp,
+        });
+        self.palette.entries.push(PaletteEntry {
+            label: "Quit".into(),
+            action: Action::Quit,
+        });
+
+        self.palette_filter();
+    }
+
+    pub fn palette_filter(&mut self) {
+        let q = self.palette.query.to_lowercase();
+        self.palette.filtered = self
+            .palette
+            .entries
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| q.is_empty() || e.label.to_lowercase().contains(&q))
+            .map(|(i, _)| i)
+            .collect();
+        if !self.palette.filtered.is_empty() {
+            self.palette.selected = self.palette.selected.min(self.palette.filtered.len() - 1);
+        } else {
+            self.palette.selected = 0;
+        }
+    }
+
+    pub fn palette_select_next(&mut self) {
+        if !self.palette.filtered.is_empty() {
+            self.palette.selected = (self.palette.selected + 1) % self.palette.filtered.len();
+        }
+    }
+
+    pub fn palette_select_prev(&mut self) {
+        if !self.palette.filtered.is_empty() {
+            self.palette.selected = if self.palette.selected == 0 {
+                self.palette.filtered.len() - 1
+            } else {
+                self.palette.selected - 1
+            };
+        }
+    }
+
+    pub fn palette_selected_action(&self) -> Option<Action> {
+        self.palette
+            .filtered
+            .get(self.palette.selected)
+            .and_then(|&i| self.palette.entries.get(i))
+            .map(|e| e.action.clone())
+    }
+
+    pub fn close_palette(&mut self) {
+        self.palette.open = false;
+        self.input_mode = InputMode::Normal;
+    }
+
+    pub fn execute_action(&mut self, action: &Action) {
+        match action {
+            Action::Quit => self.quit(),
+            Action::ToggleHelp => self.toggle_help(),
+            Action::NextTheme => self.next_theme(),
+            Action::PreviousTheme => self.previous_theme(),
+            Action::NextLayout => self.next_layout(),
+            Action::ToggleFullscreen => self.toggle_fullscreen(),
+            Action::CycleFullscreen => self.cycle_fullscreen_widget(),
+            Action::Search => self.start_search(),
+            Action::OpenCommandPalette => {}
+            Action::Cancel => {
+                if self.show_help {
+                    self.toggle_help();
+                }
+            }
+            Action::SelectTheme(i) => {
+                self.selected_theme_index = *i;
+                self.apply_theme();
+            }
+            Action::SelectLayout(i) => {
+                self.layout_index = *i;
+                self.layout_mode = self.save_layout_mode();
+                self.full_screen_widget = FullScreenWidget::None;
+            }
+        }
     }
 }
 
@@ -388,7 +582,7 @@ mod tests {
     #[test]
     fn test_config_default() {
         let c = Config::default();
-        assert_eq!(c.theme, "x");
+        assert_eq!(c.theme, "miami");
         assert_eq!(c.layout_mode, LayoutMode::Dashboard);
         assert_eq!(c.update_interval_ms, 1000);
     }

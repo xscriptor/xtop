@@ -1,12 +1,12 @@
+use crate::color::to_color;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
 use xtop_core::application::state::AppState;
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
-    let fg = rgb(state.current_theme.fg());
-    let bg = rgb(state.current_theme.bg());
+    let fg = to_color(state.current_theme.fg());
+    let bg = to_color(state.current_theme.bg());
 
     let mut title = "Processes".to_string();
     if !state.search_query.is_empty() {
@@ -23,7 +23,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let snap = state.snapshot();
     let separator = Span::styled(
         " | ",
-        Style::default().fg(rgb(&state.current_theme.palette[8])),
+        Style::default().fg(to_color(&state.current_theme.palette[8])),
     );
 
     let iter: Box<dyn Iterator<Item = &xtop_core::domain::metrics::ProcessInfo>> =
@@ -76,7 +76,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
             Row::new(vec!["PID |", "Name |", "CPU% |", "Mem |", "User"])
                 .style(
                     Style::default()
-                        .fg(rgb(&state.current_theme.palette[6]))
+                        .fg(to_color(&state.current_theme.palette[6]))
                         .add_modifier(Modifier::BOLD),
                 )
                 .bottom_margin(1),

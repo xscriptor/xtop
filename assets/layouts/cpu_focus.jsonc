@@ -1,0 +1,12 @@
+{
+    // CPU Focus: CPU takes 60%, processes the rest
+    "name": "CPU Focus",
+    "root": {
+        "direction": "vertical",
+        "areas": [
+            { "widget": "header", "size": 3 },
+            { "widget": "cpu", "size": "60%" },
+            { "widget": "processes", "size": "*" }
+        ]
+    }
+}

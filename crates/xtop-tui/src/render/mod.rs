@@ -6,14 +6,26 @@ mod header;
 mod help;
 mod memory;
 mod network;
+mod palette;
 mod processes;
 mod storage;
 
+mod layout_engine;
+
+use crate::color::to_color;
+use layout_engine::{default_widgets, render_layout, WidgetRenderer};
 use ratatui::prelude::*;
 use ratatui::Frame;
+use std::collections::HashMap;
+use std::sync::OnceLock;
 use xtop_core::application::state::{
     detect_effective_layout, AppState, EffectiveLayout, FullScreenWidget, InputMode,
 };
+
+fn widgets() -> &'static HashMap<&'static str, WidgetRenderer> {
+    static WIDGETS: OnceLock<HashMap<&'static str, WidgetRenderer>> = OnceLock::new();
+    WIDGETS.get_or_init(default_widgets)
+}
 
 pub fn render(f: &mut Frame, state: &AppState) {
     let area = f.area();
@@ -34,36 +46,31 @@ pub fn render(f: &mut Frame, state: &AppState) {
     }
 
     let mode = detect_effective_layout(area.width, area.height, state.layout_mode);
-    match mode {
-        EffectiveLayout::Dashboard => render_dashboard(f, state, area),
-        EffectiveLayout::Compact => render_compact(f, state, area),
-        EffectiveLayout::Vertical => render_vertical(f, state, area),
-        EffectiveLayout::Horizontal => render_horizontal(f, state, area),
-        EffectiveLayout::CpuFocus => render_cpu_focus(f, state, area),
-        EffectiveLayout::MemoryFocus => render_memory_focus(f, state, area),
-        EffectiveLayout::NetworkFocus => render_network_focus(f, state, area),
-        EffectiveLayout::ProcessFocus => render_process_focus(f, state, area),
-        EffectiveLayout::Minimal => render_minimal(f, state, area),
+    if mode == EffectiveLayout::Minimal {
+        render_minimal(f, state, area);
+    } else {
+        let def = state.current_layout();
+        render_layout(f, state, area, def, widgets());
     }
 
     if state.input_mode == InputMode::Searching {
         render_search_overlay(f, state, area);
+    } else if state.input_mode == InputMode::CommandPalette {
+        palette::render(f, state, area);
     }
 }
 
 fn render_too_small(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::Paragraph;
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
-    let fg = rgb(state.current_theme.fg());
+    let fg = to_color(state.current_theme.fg());
     let text = Paragraph::new("Terminal too small\nMinimum: 40x8").style(Style::default().fg(fg));
     f.render_widget(text, area);
 }
 
 fn render_search_overlay(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::{Block, Borders, Paragraph};
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
-    let fg = rgb(state.current_theme.fg());
-    let bg = rgb(state.current_theme.bg());
+    let fg = to_color(state.current_theme.fg());
+    let bg = to_color(state.current_theme.bg());
     let search_text = format!("/{}_", state.search_query);
     let overlay = Paragraph::new(search_text)
         .style(Style::default().fg(fg).bg(bg))
@@ -100,208 +107,9 @@ fn render_fullscreen(f: &mut Frame, state: &AppState, area: Rect) {
     }
 }
 
-fn render_dashboard(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Percentage(45),
-            Constraint::Percentage(52),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-
-    let top = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(chunks[1]);
-
-    cpu::render(f, state, top[0]);
-
-    let right = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-            Constraint::Percentage(34),
-        ])
-        .split(top[1]);
-
-    memory::render(f, state, right[0]);
-    storage::render(f, state, right[1]);
-    network::render(f, state, right[2]);
-
-    processes::render(f, state, chunks[2]);
-}
-
-fn render_compact(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Percentage(50),
-            Constraint::Percentage(47),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-
-    let top = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
-        .split(chunks[1]);
-
-    cpu::render(f, state, top[0]);
-
-    let right = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(40),
-            Constraint::Percentage(30),
-            Constraint::Percentage(30),
-        ])
-        .split(top[1]);
-
-    memory::render(f, state, right[0]);
-    storage::render(f, state, right[1]);
-    network::render(f, state, right[2]);
-
-    processes::render(f, state, chunks[2]);
-}
-
-fn render_vertical(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Length(8),
-            Constraint::Length(8),
-            Constraint::Length(6),
-            Constraint::Length(5),
-            Constraint::Min(0),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-    cpu::render(f, state, chunks[1]);
-    memory::render(f, state, chunks[2]);
-    storage::render(f, state, chunks[3]);
-    network::render(f, state, chunks[4]);
-    processes::render(f, state, chunks[5]);
-}
-
-fn render_horizontal(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-
-    let mid = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ])
-        .split(chunks[1]);
-
-    cpu::render(f, state, mid[0]);
-    memory::render(f, state, mid[1]);
-    storage::render(f, state, mid[2]);
-    network::render(f, state, mid[3]);
-}
-
-fn render_cpu_focus(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Percentage(60),
-            Constraint::Min(10),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-    cpu::render(f, state, chunks[1]);
-    processes::render(f, state, chunks[2]);
-}
-
-fn render_memory_focus(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Percentage(60),
-            Constraint::Min(10),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-    memory::render(f, state, chunks[1]);
-    processes::render(f, state, chunks[2]);
-}
-
-fn render_network_focus(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Percentage(50),
-            Constraint::Min(10),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-
-    let mid = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(chunks[1]);
-
-    network::render(f, state, mid[0]);
-    disk_io::render(f, state, mid[1]);
-
-    processes::render(f, state, chunks[2]);
-}
-
-fn render_process_focus(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Length(8),
-            Constraint::Min(0),
-        ])
-        .split(area);
-
-    header::render(f, state, chunks[0]);
-
-    let stats = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ])
-        .split(chunks[1]);
-
-    cpu::render(f, state, stats[0]);
-    memory::render(f, state, stats[1]);
-    storage::render(f, state, stats[2]);
-    network::render(f, state, stats[3]);
-
-    processes::render(f, state, chunks[2]);
-}
-
 fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::Gauge;
-    let rgb = |c: &[u8; 3]| Color::Rgb(c[0], c[1], c[2]);
-    let bg = rgb(state.current_theme.bg());
+    let bg = to_color(state.current_theme.bg());
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -327,7 +135,7 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     let cpu_gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(rgb(&state.current_theme.palette[1]))
+                .fg(to_color(&state.current_theme.palette[1]))
                 .bg(bg),
         )
         .percent(cpu_pct as u16)
@@ -344,7 +152,7 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     let mem_gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(rgb(&state.current_theme.palette[2]))
+                .fg(to_color(&state.current_theme.palette[2]))
                 .bg(bg),
         )
         .percent(mem_pct)

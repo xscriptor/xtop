@@ -1,0 +1,9 @@
+{
+    // X -- Almost-black background, purple-pink accents
+    "name": "x",
+    "palette": [
+        "#050505", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3", "#5ad4e6",
+        "#f7f1ff", "#0f0f0f", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3",
+        "#5ad4e6", "#f7f1ff"
+    ]
+}

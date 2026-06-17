@@ -146,6 +146,9 @@ fn main() -> anyhow::Result<()> {
                                     state.open_palette();
                                     state.input_mode = InputMode::CommandPalette;
                                 }
+                                Action::KillProcess | Action::ProcessUp | Action::ProcessDown => {
+                                    state.execute_action(&action);
+                                }
                                 _ => {
                                     state.execute_action(&action);
                                 }

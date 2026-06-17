@@ -36,9 +36,11 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
             break;
         }
         let color_idx = gauge_gradient(disk.percent, state.alerts.disk_high);
+        let fs_type = &disk.file_system;
         let label = format!(
-            "{}  Tot: {}  Use: {}  Free: {}",
+            "{} [{}]  Tot: {}  Use: {}  Free: {}",
             disk.mount_point,
+            if fs_type.is_empty() { "?" } else { fs_type },
             format_bytes(disk.total_space),
             format_bytes(disk.used_space),
             format_bytes(disk.available_space),

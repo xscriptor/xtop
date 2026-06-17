@@ -1,5 +1,6 @@
 use crate::application::history::MetricsHistory;
 use crate::domain::keybinding::{Action, Keybindings};
+use crate::domain::metrics::SystemInfo;
 use crate::domain::layout::LayoutDef;
 use crate::domain::metrics::SystemSnapshot;
 use crate::domain::system_info::SystemDataProvider;
@@ -110,6 +111,34 @@ pub enum FullScreenWidget {
     Battery,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ProcessSortBy {
+    Cpu,
+    Memory,
+    Pid,
+    Name,
+}
+
+impl ProcessSortBy {
+    pub fn next(self) -> Self {
+        match self {
+            Self::Cpu => Self::Memory,
+            Self::Memory => Self::Pid,
+            Self::Pid => Self::Name,
+            Self::Name => Self::Cpu,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Cpu => "CPU%",
+            Self::Memory => "Mem",
+            Self::Pid => "PID",
+            Self::Name => "Name",
+        }
+    }
+}
+
 impl FullScreenWidget {
     pub fn next(self) -> Self {
         match self {
@@ -215,7 +244,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            theme: "miami".to_string(),
+            theme: "x".to_string(),
             layout_mode: LayoutMode::Dashboard,
             update_interval_ms: 1000,
             history_points: 100,
@@ -245,6 +274,9 @@ pub struct AppState {
     pub config_path: String,
     pub palette: PaletteState,
     pub keybindings: Keybindings,
+    pub process_sort: ProcessSortBy,
+    pub process_selected: Option<usize>,
+    pub sys_info: SystemInfo,
 }
 
 impl AppState {
@@ -287,6 +319,9 @@ impl AppState {
                 page: PalettePage::Main,
             },
             keybindings: config.keybindings,
+            process_sort: ProcessSortBy::Cpu,
+            process_selected: None,
+            sys_info: SystemInfo::default(),
         }
     }
 
@@ -301,6 +336,10 @@ impl AppState {
     pub fn on_tick(&mut self) {
         self.provider.refresh_all();
         self.tick_count += 1.0;
+        let info = self.provider.system_info();
+        if !info.hostname.is_empty() {
+            self.sys_info = info;
+        }
         let x = self.tick_count;
         let snap = self.provider.snapshot();
 
@@ -324,6 +363,7 @@ impl AppState {
         snap.batteries = self.provider.batteries();
         snap.gpus = self.provider.gpu_info();
         snap.dockers = self.provider.docker_info();
+        snap.sys_info = self.provider.system_info();
         snap
     }
 
@@ -420,6 +460,14 @@ impl AppState {
                     action: Action::ToggleHelp,
                 });
                 self.palette.entries.push(PaletteEntry {
+                    label: format!("Sort: {}", self.process_sort.label()),
+                    action: Action::SortByCpu,
+                });
+                self.palette.entries.push(PaletteEntry {
+                    label: "Random Theme".into(),
+                    action: Action::RandomTheme,
+                });
+                self.palette.entries.push(PaletteEntry {
                     label: "Exit".into(),
                     action: Action::Quit,
                 });
@@ -492,6 +540,33 @@ impl AppState {
         }
     }
 
+    pub fn process_select_next(&mut self) {
+        let snap = self.snapshot();
+        if snap.processes.is_empty() {
+            return;
+        }
+        let idx = self.process_selected.unwrap_or(0);
+        self.process_selected = Some((idx + 1) % snap.processes.len());
+    }
+
+    pub fn process_select_prev(&mut self) {
+        let snap = self.snapshot();
+        if snap.processes.is_empty() {
+            return;
+        }
+        let idx = self.process_selected.unwrap_or(0);
+        self.process_selected = Some(if idx == 0 {
+            snap.processes.len() - 1
+        } else {
+            idx - 1
+        });
+    }
+
+    pub fn cycle_sort(&mut self) {
+        self.process_sort = self.process_sort.next();
+        self.process_selected = None;
+    }
+
     pub fn palette_selected_action(&self) -> Option<Action> {
         self.palette
             .filtered
@@ -538,6 +613,29 @@ impl AppState {
             Action::NavigateLayouts => {
                 self.palette_navigate_to(PalettePage::Layouts);
                 return;
+            }
+            Action::KillProcess => {
+                if let Some(pid) = self.process_selected {
+                    let snap = self.snapshot();
+                    if pid < snap.processes.len() {
+                        let target = snap.processes[pid].pid;
+                        self.provider.kill_process(target);
+                        self.process_selected = None;
+                    }
+                }
+            }
+            Action::ProcessUp => self.process_select_prev(),
+            Action::ProcessDown => self.process_select_next(),
+            Action::SortByPid | Action::SortByCpu | Action::SortByName | Action::SortByMem => {
+                self.cycle_sort();
+            }
+            Action::RandomTheme => {
+                let n = self.themes.len();
+                if n > 1 {
+                    let next = (self.selected_theme_index + 7) % n;
+                    self.selected_theme_index = next;
+                    self.apply_theme();
+                }
             }
         }
         // Close palette after executing any action (except navigation which returns above)
@@ -638,7 +736,7 @@ mod tests {
     #[test]
     fn test_config_default() {
         let c = Config::default();
-        assert_eq!(c.theme, "miami");
+        assert_eq!(c.theme, "x");
         assert_eq!(c.layout_mode, LayoutMode::Dashboard);
         assert_eq!(c.update_interval_ms, 1000);
     }

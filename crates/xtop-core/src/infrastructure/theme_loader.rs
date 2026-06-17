@@ -15,11 +15,11 @@ fn make_theme(name: &str, colors: [&str; 16]) -> Theme {
 
 fn default_theme() -> Theme {
     make_theme(
-        "miami",
+        "x",
         [
-            "#000000", "#FF4C8B", "#7FFFD4", "#FFD84C", "#00FFA8", "#D36CFF", "#47CFFF",
-            "#f7f1ff", "#69676c", "#FF4C8B", "#7FFFD4", "#FFD84C", "#00FFA8", "#D36CFF",
-            "#47CFFF", "#f7f1ff",
+            "#050505", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3", "#5ad4e6",
+            "#f7f1ff", "#0f0f0f", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3",
+            "#5ad4e6", "#f7f1ff",
         ],
     )
 }
@@ -118,8 +118,8 @@ mod tests {
     #[test]
     fn test_default_theme() {
         let t = default_theme();
-        assert_eq!(t.name, "miami");
-        assert_eq!(t.bg(), &[0, 0, 0]);
+        assert_eq!(t.name, "x");
+        assert_eq!(t.bg(), &[5, 5, 5]);
     }
 
     #[test]

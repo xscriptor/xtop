@@ -3,6 +3,8 @@ pub struct CpuInfo {
     pub name: String,
     pub usage: f64,
     pub cpu_id: usize,
+    pub frequency: u64,
+    pub governor: String,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +31,8 @@ pub struct DiskInfo {
     pub available_space: u64,
     pub used_space: u64,
     pub percent: f64,
+    pub file_system: String,
+    pub mount_options: String,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +51,7 @@ pub struct NetworkInfo {
     pub transmitted: u64,
     pub rx_speed: f64,
     pub tx_speed: f64,
+    pub ip: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +61,8 @@ pub struct ProcessInfo {
     pub cpu_usage: f64,
     pub memory: u64,
     pub user_id: Option<String>,
+    pub state: String,
+    pub cmd: String,
 }
 
 #[derive(Debug, Clone)]
@@ -72,6 +79,8 @@ pub struct BatteryInfo {
     pub state: String,
     pub time_to_full: Option<u64>,
     pub time_to_empty: Option<u64>,
+    pub health: f32,
+    pub cycle_count: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -91,6 +100,15 @@ pub struct DockerInfo {
     pub memory_usage: u64,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct SystemInfo {
+    pub hostname: String,
+    pub os_version: String,
+    pub kernel: String,
+    pub desktop_env: String,
+    pub shell: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct SystemSnapshot {
     pub cpus: Vec<CpuInfo>,
@@ -106,4 +124,5 @@ pub struct SystemSnapshot {
     pub batteries: Vec<BatteryInfo>,
     pub gpus: Vec<GpuInfo>,
     pub dockers: Vec<DockerInfo>,
+    pub sys_info: SystemInfo,
 }

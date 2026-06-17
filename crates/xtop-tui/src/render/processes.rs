@@ -4,12 +4,15 @@ use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
 use xtop_core::application::state::AppState;
+use xtop_core::domain::metrics::ProcessInfo;
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let fg = to_color(state.current_theme.fg());
     let bg = to_color(state.current_theme.bg());
+    let dim_bg = to_color(&state.current_theme.palette[8]);
+    let accent = to_color(&state.current_theme.palette[6]);
 
-    let mut title = "Processes".to_string();
+    let mut title = format!("Processes (sort: {})", state.process_sort.label());
     if !state.search_query.is_empty() {
         title = format!("Processes (filter: {})", state.search_query);
     }
@@ -24,24 +27,46 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
 
     let snap = state.snapshot();
 
-    let iter: Box<dyn Iterator<Item = &xtop_core::domain::metrics::ProcessInfo>> =
-        if state.search_query.is_empty() {
-            Box::new(snap.processes.iter())
-        } else {
-            let q = state.search_query.to_lowercase();
-            Box::new(
-                snap.processes
-                    .iter()
-                    .filter(move |p| p.name.to_lowercase().contains(&q)),
-            )
-        };
+    let iter: Box<dyn Iterator<Item = &ProcessInfo>> = if state.search_query.is_empty() {
+        Box::new(snap.processes.iter())
+    } else {
+        let q = state.search_query.to_lowercase();
+        Box::new(
+            snap.processes
+                .iter()
+                .filter(move |p| p.name.to_lowercase().contains(&q)),
+        )
+    };
 
-    let dim_bg = to_color(&state.current_theme.palette[8]);
+    let mut items: Vec<&ProcessInfo> = iter.collect();
 
-    let rows: Vec<Row> = iter
+    // Sort
+    match state.process_sort {
+        xtop_core::application::state::ProcessSortBy::Cpu => {
+            items.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
+        }
+        xtop_core::application::state::ProcessSortBy::Memory => {
+            items.sort_by_key(|b| std::cmp::Reverse(b.memory));
+        }
+        xtop_core::application::state::ProcessSortBy::Pid => {
+            items.sort_by_key(|a| a.pid);
+        }
+        xtop_core::application::state::ProcessSortBy::Name => {
+            items.sort_by_key(|a| a.name.to_lowercase());
+        }
+    }
+
+    let rows: Vec<Row> = items
+        .into_iter()
         .enumerate()
         .map(|(row_idx, p)| {
-            let style = if row_idx % 2 == 0 {
+            let is_selected = state.process_selected == Some(row_idx);
+            let style = if is_selected {
+                Style::default()
+                    .fg(bg)
+                    .bg(accent)
+                    .add_modifier(Modifier::BOLD)
+            } else if row_idx % 2 == 0 {
                 Style::default().fg(fg)
             } else {
                 Style::default().fg(fg).bg(dim_bg)
@@ -70,12 +95,17 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
             Row::new(vec!["PID", "Name", "CPU%", "Mem", "User"])
                 .style(
                     Style::default()
-                        .fg(to_color(&state.current_theme.palette[6]))
+                        .fg(accent)
                         .add_modifier(Modifier::BOLD),
                 )
                 .bottom_margin(1),
         )
-        .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+        .row_highlight_style(
+            Style::default()
+                .fg(bg)
+                .bg(accent)
+                .add_modifier(Modifier::BOLD),
+        );
 
     f.render_widget(table, inner);
 }

@@ -24,10 +24,13 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
         extras.push_str(" [/] Search");
     }
 
+    let host = &state.sys_info.hostname;
+
     let wide = area.width >= 80;
     let text: Vec<Line> = if wide {
         vec![Line::from(format!(
-            "xtop | {} | {} | Uptime: {} | Load: {:.2} {:.2} {:.2}{}",
+            "{} | {} | {} | Uptime: {} | Load: {:.2} {:.2} {:.2}{}",
+            if host.is_empty() { "xtop".to_string() } else { host.clone() },
             state.current_theme.name,
             mode_str,
             format_uptime(uptime),
@@ -37,10 +40,15 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
             extras,
         ))]
     } else {
+        let host_part = if host.is_empty() {
+            mode_str.to_string()
+        } else {
+            format!("{} | {}", host, mode_str)
+        };
         vec![
             Line::from(format!(
                 "{} | Uptime: {}",
-                mode_str,
+                host_part,
                 format_uptime(uptime),
             )),
             Line::from(format!(

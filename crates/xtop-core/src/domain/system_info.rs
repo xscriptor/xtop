@@ -15,4 +15,10 @@ pub trait SystemDataProvider: Send {
     fn docker_info(&self) -> Vec<DockerInfo> {
         vec![]
     }
+    fn system_info(&self) -> SystemInfo {
+        SystemInfo::default()
+    }
+    fn kill_process(&self, _pid: u32) -> bool {
+        false
+    }
 }

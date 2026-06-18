@@ -21,4 +21,12 @@ pub trait SystemDataProvider: Send {
     fn kill_process(&self, _pid: u32) -> bool {
         false
     }
+
+    /// Downcast to `Any` for internal provider composition.
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+
+    /// Add extra data providers (used by CompositeProvider).
+    /// Default no-op implementation for non-composite providers.
+    fn add_extras(&mut self, _extras: Vec<Box<dyn SystemDataProvider>>) {}
 }

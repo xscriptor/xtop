@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/xtop-core", "crates/xtop-tui", "crates/xtop-cli"]
+members = [
+    "crates/xtop-core",
+    "crates/xtop-tui",
+    "crates/xtop-cli",
+    "plugins/xtop-plugin-sentinel",
+]
 
 [workspace.package]
 version = "0.2.0"

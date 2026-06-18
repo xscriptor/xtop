@@ -13,7 +13,7 @@ mod storage;
 mod layout_engine;
 
 use crate::color::to_color;
-use layout_engine::{default_widgets, render_layout, WidgetRenderer};
+use layout_engine::{default_widgets, render_layout, WidgetFn};
 use ratatui::prelude::*;
 use ratatui::Frame;
 use std::collections::HashMap;
@@ -22,9 +22,19 @@ use xtop_core::application::state::{
     detect_effective_layout, AppState, EffectiveLayout, FullScreenWidget, InputMode,
 };
 
-fn widgets() -> &'static HashMap<&'static str, WidgetRenderer> {
-    static WIDGETS: OnceLock<HashMap<&'static str, WidgetRenderer>> = OnceLock::new();
+/// Built-in widgets (lazily initialized).
+fn widgets() -> &'static HashMap<&'static str, WidgetFn> {
+    static WIDGETS: OnceLock<HashMap<&'static str, WidgetFn>> = OnceLock::new();
     WIDGETS.get_or_init(default_widgets)
+}
+
+/// Build a plugin widget lookup map from AppState.
+fn plugin_widgets(state: &AppState) -> HashMap<String, WidgetFn> {
+    let mut map: HashMap<String, WidgetFn> = HashMap::new();
+    for reg in &state.plugin_widgets {
+        map.insert(reg.name.clone(), reg.render.clone());
+    }
+    map
 }
 
 pub fn render(f: &mut Frame, state: &AppState) {
@@ -46,11 +56,13 @@ pub fn render(f: &mut Frame, state: &AppState) {
     }
 
     let mode = detect_effective_layout(area.width, area.height, state.layout_mode);
+    let pw = plugin_widgets(state);
+
     if mode == EffectiveLayout::Minimal {
         render_minimal(f, state, area);
     } else {
         let def = state.current_layout();
-        render_layout(f, state, area, def, widgets());
+        render_layout(f, state, area, def, widgets(), &pw);
     }
 
     if state.input_mode == InputMode::Searching {
@@ -109,6 +121,7 @@ fn render_fullscreen(f: &mut Frame, state: &AppState, area: Rect) {
 
 fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::Gauge;
+
     let bg = to_color(state.current_theme.bg());
 
     let chunks = Layout::default()

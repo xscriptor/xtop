@@ -7,6 +7,8 @@ use sysinfo::{
     RefreshKind, Signal, System,
 };
 
+pub const DEFAULT_MAX_PROCESSES: usize = 200;
+
 pub struct SysinfoProvider {
     sys: System,
     disks: Disks,
@@ -18,6 +20,7 @@ pub struct SysinfoProvider {
     prev_net_tx: HashMap<String, u64>,
     last_refresh: Instant,
     cached_sys_info: SystemInfo,
+    max_processes: usize,
 }
 
 impl Default for SysinfoProvider {
@@ -56,6 +59,7 @@ impl SysinfoProvider {
             prev_net_tx: HashMap::new(),
             last_refresh: Instant::now(),
             cached_sys_info: info,
+            max_processes: DEFAULT_MAX_PROCESSES,
         }
     }
 }
@@ -176,18 +180,48 @@ impl SystemDataProvider for SysinfoProvider {
             })
             .collect();
 
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
         let mut procs: Vec<ProcessInfo> = self
             .sys
             .processes()
             .iter()
-            .map(|(pid, p)| ProcessInfo {
-                pid: pid.as_u32(),
-                name: p.name().to_string_lossy().to_string(),
-                cpu_usage: p.cpu_usage() as f64,
-                memory: p.memory(),
-                user_id: p.user_id().map(|u| u.to_string()),
-                state: format!("{:?}", p.status()),
-                cmd: p.cmd().first().map(|c| c.to_string_lossy().to_string()).unwrap_or_default(),
+            .map(|(pid, p)| {
+                let start = p.start_time();
+                let run = if start > 0 { now.saturating_sub(start) } else { 0 };
+                ProcessInfo {
+                    pid: pid.as_u32(),
+                    name: p.name().to_string_lossy().to_string(),
+                    cpu_usage: p.cpu_usage() as f64,
+                    memory: p.memory(),
+                    user_id: p.user_id().map(|u| u.to_string()),
+                    state: format!("{:?}", p.status()),
+                    cmd: p.cmd().first().map(|c| c.to_string_lossy().to_string()).unwrap_or_default(),
+
+                    // P0
+                    exe_path: p.exe().map(|e| e.to_string_lossy().to_string()),
+                    parent_pid: p.parent().map(|ppid| ppid.as_u32()),
+                    cmd_full: p.cmd().iter().map(|c| c.to_string_lossy().to_string()).collect(),
+
+                    // P1
+                    start_time: start,
+                    run_time: run,
+                    effective_user_id: p.effective_user_id().map(|u| u.to_string()),
+                    group_id: p.group_id().map(|g| g.to_string()),
+                    cwd: p.cwd().map(|c| c.to_string_lossy().to_string()),
+                    thread_count: read_thread_count(p.pid()),
+
+                    // P2
+                    open_files: p.open_files().unwrap_or(0) as u64,
+                    open_files_limit: p.open_files_limit().unwrap_or(0) as u64,
+                    disk_total_read_bytes: p.disk_usage().total_read_bytes,
+                    disk_total_write_bytes: p.disk_usage().total_written_bytes,
+                    environ: p.environ().iter().map(|e| e.to_string_lossy().to_string()).collect(),
+                    session_id: p.session_id().map(|s| s.as_u32()),
+                }
             })
             .collect();
         procs.sort_by(|a, b| {
@@ -195,7 +229,7 @@ impl SystemDataProvider for SysinfoProvider {
                 .partial_cmp(&a.cpu_usage)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        procs.truncate(200);
+        procs.truncate(self.max_processes);
 
         let mut max_temp = 0.0f32;
         for component in &self.components {
@@ -240,7 +274,19 @@ impl SystemDataProvider for SysinfoProvider {
 
     fn kill_process(&self, pid: u32) -> bool {
         if let Some(process) = self.sys.process(Pid::from(pid as usize)) {
-            process.kill_with(Signal::Term).unwrap_or(false)
+            // Only allow killing processes owned by the same user (safety check)
+            let current_uid = self
+                .sys
+                .process(sysinfo::get_current_pid().unwrap_or(Pid::from(0)))
+                .and_then(|p| p.user_id());
+            let target_uid = process.user_id();
+            match (current_uid, target_uid) {
+                (Some(current), Some(target)) if current == target => {
+                    process.kill_with(Signal::Term).unwrap_or(false)
+                }
+                (Some(_), Some(_)) => false,
+                _ => process.kill_with(Signal::Term).unwrap_or(false),
+            }
         } else {
             false
         }
@@ -252,6 +298,14 @@ impl SystemDataProvider for SysinfoProvider {
 
     fn gpu_info(&self) -> Vec<GpuInfo> {
         read_gpu_info()
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }
 
@@ -538,6 +592,31 @@ fn find_hwmon_temp(device_path: &std::path::Path, label_filter: &str) -> Option<
 }
 
 #[cfg(not(target_os = "linux"))]
+#[allow(dead_code)]
 fn find_hwmon_temp(_device_path: &std::path::Path, _label_filter: &str) -> Option<f32> {
     None
+}
+
+// ---------------------------------------------------------------------------
+// Thread count helper
+// ---------------------------------------------------------------------------
+
+#[cfg(target_os = "linux")]
+fn read_thread_count(pid: sysinfo::Pid) -> u64 {
+    use std::fs;
+    let path = format!("/proc/{}/status", pid);
+    if let Ok(content) = fs::read_to_string(&path) {
+        for line in content.lines() {
+            if let Some(rest) = line.strip_prefix("Threads:\t") {
+                return rest.trim().parse::<u64>().unwrap_or(0);
+            }
+        }
+    }
+    0
+}
+
+#[cfg(not(target_os = "linux"))]
+fn read_thread_count(_pid: sysinfo::Pid) -> u64 {
+    // Fallback: use tasks count from sysinfo (available on some platforms)
+    0
 }

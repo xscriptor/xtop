@@ -1,8 +1,10 @@
 use crate::application::history::MetricsHistory;
+use crate::application::plugin_manager::PluginManager;
 use crate::domain::keybinding::{Action, Keybindings};
 use crate::domain::metrics::SystemInfo;
 use crate::domain::layout::LayoutDef;
 use crate::domain::metrics::SystemSnapshot;
+use crate::domain::plugin::WidgetRegistration;
 use crate::domain::system_info::SystemDataProvider;
 use crate::domain::theme::Theme;
 use serde::{Deserialize, Serialize};
@@ -230,10 +232,19 @@ impl Default for AlertThresholds {
     }
 }
 
+fn default_layout_mode() -> LayoutMode {
+    LayoutMode::Dashboard
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Config {
     pub theme: String,
+    #[serde(default = "default_layout_mode")]
     pub layout_mode: LayoutMode,
+    /// Layout name for custom layouts beyond the 7 built-in LayoutMode variants.
+    /// If non-empty, takes precedence over `layout_mode`.
+    #[serde(default)]
+    pub layout_name: String,
     pub update_interval_ms: u64,
     pub history_points: usize,
     pub alerts: AlertThresholds,
@@ -246,6 +257,7 @@ impl Default for Config {
         Self {
             theme: "x".to_string(),
             layout_mode: LayoutMode::Dashboard,
+            layout_name: String::new(),
             update_interval_ms: 1000,
             history_points: 100,
             alerts: AlertThresholds::default(),
@@ -277,6 +289,8 @@ pub struct AppState {
     pub process_sort: ProcessSortBy,
     pub process_selected: Option<usize>,
     pub sys_info: SystemInfo,
+    pub plugin_manager: Option<PluginManager>,
+    pub plugin_widgets: Vec<WidgetRegistration>,
 }
 
 impl AppState {
@@ -291,7 +305,14 @@ impl AppState {
             .position(|t| t.name == config.theme)
             .unwrap_or(0);
         let current_theme = themes[selected_theme_index].clone();
-        let layout_index = layout_index_from_mode(config.layout_mode, &layout_defs);
+        let layout_index = if !config.layout_name.is_empty() {
+            layout_defs
+                .iter()
+                .position(|l| l.name == config.layout_name)
+                .unwrap_or_else(|| layout_index_from_mode(config.layout_mode, &layout_defs))
+        } else {
+            layout_index_from_mode(config.layout_mode, &layout_defs)
+        };
         Self {
             provider,
             history: MetricsHistory::new(config.history_points),
@@ -322,6 +343,68 @@ impl AppState {
             process_sort: ProcessSortBy::Cpu,
             process_selected: None,
             sys_info: SystemInfo::default(),
+            plugin_manager: None,
+            plugin_widgets: Vec::new(),
+        }
+    }
+
+    /// Set the plugin manager and inject extra data providers into the composite provider.
+    /// Called once during initialization after all plugins are registered.
+    pub fn init_plugins(
+        &mut self,
+        mgr: PluginManager,
+        extra_providers: Vec<Box<dyn SystemDataProvider>>,
+    ) {
+        if !extra_providers.is_empty() {
+            self.provider.add_extras(extra_providers);
+        }
+        self.plugin_manager = Some(mgr);
+        self.refresh_plugin_widgets();
+    }
+
+    /// Collect plugin widgets into the state for the TUI renderer.
+    pub fn refresh_plugin_widgets(&mut self) {
+        if let Some(ref mgr) = self.plugin_manager {
+            let registrations = mgr.collect_widgets();
+            // Only accept if the plugin has RenderWidgets capability
+            self.plugin_widgets = registrations;
+        }
+    }
+
+    /// Kill a process by PID. Returns true if the signal was sent.
+    pub fn kill_process_by_pid(&mut self, pid: u32) -> bool {
+        self.provider.kill_process(pid)
+    }
+
+    /// Set alert thresholds.
+    pub fn set_alert_thresholds(&mut self, cpu: f64, mem: f64, disk: f64) {
+        self.alerts = AlertThresholds {
+            cpu_high: cpu,
+            mem_high: mem,
+            disk_high: disk,
+        };
+    }
+
+    /// Switch to a theme by name. Returns true if found.
+    pub fn set_theme_by_name(&mut self, name: &str) -> bool {
+        if let Some(idx) = self.themes.iter().position(|t| t.name == name) {
+            self.selected_theme_index = idx;
+            self.apply_theme();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Switch to a layout by name. Returns true if found.
+    pub fn set_layout_by_name(&mut self, name: &str) -> bool {
+        if let Some(idx) = self.layout_defs.iter().position(|l| l.name == name) {
+            self.layout_index = idx;
+            self.layout_mode = self.save_layout_mode();
+            self.full_screen_widget = FullScreenWidget::None;
+            true
+        } else {
+            false
         }
     }
 
@@ -331,6 +414,22 @@ impl AppState {
 
     pub fn save_layout_mode(&self) -> LayoutMode {
         mode_from_layout_index(self.layout_index)
+    }
+
+    /// Safely access the plugin manager with a closure.
+    /// Ensures the plugin manager is always restored after the operation.
+    /// NOTE: does NOT call refresh_plugin_widgets — the caller must do it if needed.
+    pub fn with_plugin_manager_mut<R>(
+        &mut self,
+        f: impl FnOnce(&mut PluginManager, &mut Self) -> R,
+    ) -> R {
+        let mut mgr = self
+            .plugin_manager
+            .take()
+            .expect("PluginManager not initialized");
+        let result = f(&mut mgr, self);
+        self.plugin_manager = Some(mgr);
+        result
     }
 
     pub fn on_tick(&mut self) {
@@ -355,6 +454,12 @@ impl AppState {
         let total_rx: u64 = snap.networks.iter().map(|n| n.received).sum();
         let total_tx: u64 = snap.networks.iter().map(|n| n.transmitted).sum();
         self.history.push_net(x, total_rx as f64, total_tx as f64);
+
+        // Let plugins tick
+        self.with_plugin_manager_mut(|mgr, this| {
+            mgr.tick_all(this);
+        });
+        self.refresh_plugin_widgets();
     }
 
     pub fn snapshot(&self) -> SystemSnapshot {

@@ -2,7 +2,7 @@ use crate::application::state::Config;
 use std::fs;
 use std::path::PathBuf;
 
-fn config_dir() -> PathBuf {
+pub fn config_dir() -> PathBuf {
     if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
         PathBuf::from(xdg).join("xtop")
     } else if let Ok(home) = std::env::var("HOME") {

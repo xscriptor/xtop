@@ -40,7 +40,7 @@ fn vec_one_l() -> Vec<String> { vec!["l".into()] }
 fn vec_one_f() -> Vec<String> { vec!["f".into()] }
 fn vec_one_shift_f() -> Vec<String> { vec!["F".into()] }
 fn vec_one_slash() -> Vec<String> { vec!["/".into()] }
-fn vec_one_ctrl_p() -> Vec<String> { vec!["ctrl+p".into()] }
+fn vec_one_ctrl_p() -> Vec<String> { vec!["ctrl+p".into(), "ctrl+P".into()] }
 fn vec_one_escape() -> Vec<String> { vec!["escape".into()] }
 fn vec_one_k() -> Vec<String> { vec!["k".into()] }
 fn vec_one_up() -> Vec<String> { vec!["up".into()] }

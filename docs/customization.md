@@ -2,7 +2,7 @@
 
 <p>xtop supports runtime customization of color themes and layout modes via external JSONC files. This guide explains how to create and manage your own themes and layouts.</p>
 
----
+<hr>
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -31,7 +31,7 @@
   </li>
 </ul>
 
----
+<hr>
 
 <h2 id="themes">Themes</h2>
 
@@ -49,8 +49,7 @@
 
 <p>Each theme file defines a <code>name</code> and a 16-entry <code>palette</code>. Colors are hex strings with an optional <code>#</code> prefix. Comments (<code>//</code> and <code>/* */</code>) are supported in JSONC files.</p>
 
-```jsonc
-{
+<pre><code>{
     // my-custom-theme -- Dark background, warm accents
     "name": "my-custom-theme",
     "palette": [
@@ -71,8 +70,7 @@
         "#56b6c2", // 14: bright cyan
         "#abb2bf"  // 15: bright white
     ]
-}
-```
+}</code></pre>
 
 <h3 id="palette-reference">Palette Reference</h3>
 
@@ -176,9 +174,7 @@
 
 <p>If you want to restore them later, copy from the repository:</p>
 
-```bash
-cp -r assets/themes/* ~/.config/xtop/themes/
-```
+<pre><code>cp -r assets/themes/* ~/.config/xtop/themes/</code></pre>
 
 <p><strong>Available themes:</strong> <code>x</code>, <code>madrid</code>, <code>lahabana</code>, <code>paris</code>, <code>tokio</code>, <code>oslo</code>, <code>helsinki</code>, <code>berlin</code>, <code>london</code>, <code>praha</code>, <code>bogota</code>, <code>miami</code>.</p>
 
@@ -200,7 +196,7 @@ cp -r assets/themes/* ~/.config/xtop/themes/
   <li>Index 0 is the background, index 7 is the primary foreground — keep them readable together.</li>
 </ul>
 
----
+<hr>
 
 <h2 id="layouts">Layouts</h2>
 
@@ -306,8 +302,7 @@ cp -r assets/themes/* ~/.config/xtop/themes/
 
 <p>A minimal three-row layout: header, CPU, and processes.</p>
 
-```jsonc
-{
+<pre><code>{
     // "monitor" — CPU top-half, processes bottom-half
     "name": "monitor",
     "root": {
@@ -318,15 +313,13 @@ cp -r assets/themes/* ~/.config/xtop/themes/
             { "widget": "processes", "size": "*" }
         ]
     }
-}
-```
+}</code></pre>
 
 <h4>Complex nested layout</h4>
 
 <p>A full dashboard with a horizontal split in the middle section:</p>
 
-```jsonc
-{
+<pre><code>{
     "name": "my-dashboard",
     "root": {
         "direction": "vertical",
@@ -350,8 +343,7 @@ cp -r assets/themes/* ~/.config/xtop/themes/
             { "widget": "processes", "size": "*" }
         ]
     }
-}
-```
+}</code></pre>
 
 <h3 id="starter-layouts">Starter Layouts</h3>
 
@@ -359,9 +351,7 @@ cp -r assets/themes/* ~/.config/xtop/themes/
 
 <p>To restore them later, copy from the repository:</p>
 
-```bash
-cp -r assets/layouts/* ~/.config/xtop/layouts/
-```
+<pre><code>cp -r assets/layouts/* ~/.config/xtop/layouts/</code></pre>
 
 <p><strong>Available layouts:</strong> <code>dashboard</code>, <code>vertical</code>, <code>horizontal</code>, <code>cpu_focus</code>, <code>memory_focus</code>, <code>network_focus</code>, <code>process_focus</code>.</p>
 
@@ -384,7 +374,7 @@ cp -r assets/layouts/* ~/.config/xtop/layouts/
   <li>Very small terminals (under 60×14) fall back to a minimal hardcoded layout (CPU + Memory gauges + process list).</li>
 </ul>
 
----
+<hr>
 
 <p align="center">
   <a href="../README.md">← Back to README</a>

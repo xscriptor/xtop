@@ -1,0 +1,20 @@
+{
+    // Horizontal: 4 widgets side-by-side
+    "name": "Horizontal",
+    "root": {
+        "direction": "vertical",
+        "areas": [
+            { "widget": "header", "size": 3 },
+            {
+                "direction": "horizontal",
+                "size": "*",
+                "areas": [
+                    { "widget": "cpu", "size": "25%" },
+                    { "widget": "memory", "size": "25%" },
+                    { "widget": "storage", "size": "25%" },
+                    { "widget": "network", "size": "25%" }
+                ]
+            }
+        ]
+    }
+}

@@ -50,8 +50,9 @@ impl PluginManager {
     ) -> Result<(), PluginError> {
         let id = plugin.manifest().id.clone();
         let data_dir = self.plugin_data_base.join(&id);
-        std::fs::create_dir_all(&data_dir)
-            .map_err(|e| PluginError::Recoverable(format!("failed to create plugin data dir for {id}: {e}")))?;
+        std::fs::create_dir_all(&data_dir).map_err(|e| {
+            PluginError::Recoverable(format!("failed to create plugin data dir for {id}: {e}"))
+        })?;
 
         let capabilities = plugin.manifest().capabilities.clone();
         let mut ctx = PluginContext {
@@ -159,7 +160,9 @@ impl PluginManager {
             let mut ctx = Self::build_context(&base, plugin, state);
             return plugin.execute(&mut ctx, action, params);
         }
-        Err(PluginError::Recoverable(format!("plugin not found: {plugin_id}")))
+        Err(PluginError::Recoverable(format!(
+            "plugin not found: {plugin_id}"
+        )))
     }
 
     /// List all loaded plugin manifests (for display / status).
@@ -184,5 +187,3 @@ impl PluginManager {
         }
     }
 }
-
-

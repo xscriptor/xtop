@@ -72,8 +72,7 @@ impl<'de> Deserialize<'de> for Theme {
                 }
 
                 let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-                let palette_str =
-                    palette.ok_or_else(|| de::Error::missing_field("palette"))?;
+                let palette_str = palette.ok_or_else(|| de::Error::missing_field("palette"))?;
 
                 let mut palette = [[0u8; 3]; 16];
                 for (i, hex) in palette_str.iter().enumerate() {

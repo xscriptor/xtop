@@ -66,26 +66,65 @@ fn key_event_to_str(key: &KeyEvent) -> String {
 // Embedded default asset files (shipped with the binary)
 const DEFAULT_THEMES: &[(&str, &str)] = &[
     ("x", include_str!("../../../assets/themes/x.jsonc")),
-    ("madrid", include_str!("../../../assets/themes/madrid.jsonc")),
-    ("lahabana", include_str!("../../../assets/themes/lahabana.jsonc")),
+    (
+        "madrid",
+        include_str!("../../../assets/themes/madrid.jsonc"),
+    ),
+    (
+        "lahabana",
+        include_str!("../../../assets/themes/lahabana.jsonc"),
+    ),
     ("paris", include_str!("../../../assets/themes/paris.jsonc")),
     ("tokio", include_str!("../../../assets/themes/tokio.jsonc")),
     ("oslo", include_str!("../../../assets/themes/oslo.jsonc")),
-    ("helsinki", include_str!("../../../assets/themes/helsinki.jsonc")),
-    ("berlin", include_str!("../../../assets/themes/berlin.jsonc")),
-    ("london", include_str!("../../../assets/themes/london.jsonc")),
+    (
+        "helsinki",
+        include_str!("../../../assets/themes/helsinki.jsonc"),
+    ),
+    (
+        "berlin",
+        include_str!("../../../assets/themes/berlin.jsonc"),
+    ),
+    (
+        "london",
+        include_str!("../../../assets/themes/london.jsonc"),
+    ),
     ("praha", include_str!("../../../assets/themes/praha.jsonc")),
-    ("bogota", include_str!("../../../assets/themes/bogota.jsonc")),
+    (
+        "bogota",
+        include_str!("../../../assets/themes/bogota.jsonc"),
+    ),
 ];
 
 const DEFAULT_LAYOUTS: &[(&str, &str)] = &[
-    ("dashboard", include_str!("../../../assets/layouts/dashboard.jsonc")),
-    ("vertical", include_str!("../../../assets/layouts/vertical.jsonc")),
-    ("horizontal", include_str!("../../../assets/layouts/horizontal.jsonc")),
-    ("cpu_focus", include_str!("../../../assets/layouts/cpu_focus.jsonc")),
-    ("memory_focus", include_str!("../../../assets/layouts/memory_focus.jsonc")),
-    ("network_focus", include_str!("../../../assets/layouts/network_focus.jsonc")),
-    ("process_focus", include_str!("../../../assets/layouts/process_focus.jsonc")),
+    (
+        "dashboard",
+        include_str!("../../../assets/layouts/dashboard.jsonc"),
+    ),
+    (
+        "vertical",
+        include_str!("../../../assets/layouts/vertical.jsonc"),
+    ),
+    (
+        "horizontal",
+        include_str!("../../../assets/layouts/horizontal.jsonc"),
+    ),
+    (
+        "cpu_focus",
+        include_str!("../../../assets/layouts/cpu_focus.jsonc"),
+    ),
+    (
+        "memory_focus",
+        include_str!("../../../assets/layouts/memory_focus.jsonc"),
+    ),
+    (
+        "network_focus",
+        include_str!("../../../assets/layouts/network_focus.jsonc"),
+    ),
+    (
+        "process_focus",
+        include_str!("../../../assets/layouts/process_focus.jsonc"),
+    ),
 ];
 
 fn ensure_default_assets() {
@@ -160,7 +199,9 @@ fn print_usage() {
     eprintln!("  xtop                        Start the TUI system monitor");
     eprintln!("  xtop mcp                    Start MCP server (stdio transport) for AI agents");
     eprintln!("  xtop plugin list            List installed plugins");
-    eprintln!("  xtop plugin install <name>  Install a plugin from github.com/xscriptor/xtop/plugins/");
+    eprintln!(
+        "  xtop plugin install <name>  Install a plugin from github.com/xscriptor/xtop/plugins/"
+    );
     eprintln!("  xtop plugin install <url>   Install a plugin from a git URL");
     eprintln!("  xtop plugin scaffold <name> Create a new plugin crate");
 }
@@ -315,7 +356,10 @@ fn cmd_plugin_install(name_or_url: &str) -> anyhow::Result<()> {
     // --- Copy into local plugins/ directory ---
     let target_dir = plugins_dir.join(&plugin_dir_name);
     if target_dir.exists() {
-        anyhow::bail!("Plugin '{}' already exists at plugins/{plugin_dir_name}", pkg_name);
+        anyhow::bail!(
+            "Plugin '{}' already exists at plugins/{plugin_dir_name}",
+            pkg_name
+        );
     }
     fs::create_dir_all(&plugins_dir)?;
     cp_recursive(&plugin_src, &target_dir)?;
@@ -331,17 +375,11 @@ fn cmd_plugin_install(name_or_url: &str) -> anyhow::Result<()> {
     let new_ws = if ws_content.contains(sentinel_entry) {
         ws_content.replace(
             sentinel_entry,
-            &format!(
-                "{sentinel_entry}\n{member_entry},"
-            ),
+            &format!("{sentinel_entry}\n{member_entry},"),
         )
     } else {
         // Fallback: insert before the closing ] of members
-        ws_content.replacen(
-            "]",
-            &format!("  {member_entry},\n]"),
-            1,
-        )
+        ws_content.replacen("]", &format!("  {member_entry},\n]"), 1)
     };
     fs::write(&workspace_toml, &new_ws)?;
 
@@ -350,17 +388,12 @@ fn cmd_plugin_install(name_or_url: &str) -> anyhow::Result<()> {
 
     // Build dependency path relative to crates/xtop-cli/
     let dep_path = format!("../../plugins/{plugin_dir_name}");
-    let dep_line = format!(
-        "{pkg_name} = {{ path = \"{dep_path}\", optional = true }}"
-    );
+    let dep_line = format!("{pkg_name} = {{ path = \"{dep_path}\", optional = true }}");
 
     if !cli_content.contains(&dep_line) {
         // Find the last optional plugin dependency and insert after it
         let marker = "# Optional plugins (behind feature flags)";
-        let new_cli = cli_content.replace(
-            marker,
-            &format!("{marker}\n{dep_line}"),
-        );
+        let new_cli = cli_content.replace(marker, &format!("{marker}\n{dep_line}"));
         fs::write(&cli_toml, &new_cli)?;
     }
 
@@ -375,11 +408,7 @@ fn cmd_plugin_install(name_or_url: &str) -> anyhow::Result<()> {
                 &format!("{sentinel_feature}\n{feature_line}"),
             )
         } else {
-            cli_content2.replacen(
-                "[features]",
-                &format!("[features]\n{feature_line}"),
-                1,
-            )
+            cli_content2.replacen("[features]", &format!("[features]\n{feature_line}"), 1)
         };
         fs::write(&cli_toml, &new_cli2)?;
     }
@@ -601,9 +630,8 @@ fn main() -> anyhow::Result<()> {
 
                 // Give plugins first chance to consume the key
                 let key_str_clone = key_str.clone();
-                let key_consumed = state.with_plugin_manager_mut(|mgr, this| {
-                    mgr.handle_key(this, &key_str_clone)
-                });
+                let key_consumed =
+                    state.with_plugin_manager_mut(|mgr, this| mgr.handle_key(this, &key_str_clone));
                 if key_consumed {
                     continue;
                 }
@@ -689,7 +717,7 @@ fn main() -> anyhow::Result<()> {
                             }
                             _ => {}
                         }
-                    },
+                    }
                 }
             }
         }

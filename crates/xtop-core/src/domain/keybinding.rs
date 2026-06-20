@@ -32,20 +32,48 @@ pub struct Keybindings {
     pub cycle_sort: Vec<String>,
 }
 
-fn vec_one_q() -> Vec<String> { vec!["q".into()] }
-fn vec_one_question() -> Vec<String> { vec!["?".into()] }
-fn vec_one_t() -> Vec<String> { vec!["t".into()] }
-fn vec_one_shift_t() -> Vec<String> { vec!["T".into()] }
-fn vec_one_l() -> Vec<String> { vec!["l".into()] }
-fn vec_one_f() -> Vec<String> { vec!["f".into()] }
-fn vec_one_shift_f() -> Vec<String> { vec!["F".into()] }
-fn vec_one_slash() -> Vec<String> { vec!["/".into()] }
-fn vec_one_ctrl_p() -> Vec<String> { vec!["ctrl+p".into(), "ctrl+P".into()] }
-fn vec_one_escape() -> Vec<String> { vec!["escape".into()] }
-fn vec_one_k() -> Vec<String> { vec!["k".into()] }
-fn vec_one_up() -> Vec<String> { vec!["up".into()] }
-fn vec_one_down() -> Vec<String> { vec!["down".into()] }
-fn vec_one_s() -> Vec<String> { vec!["s".into()] }
+fn vec_one_q() -> Vec<String> {
+    vec!["q".into()]
+}
+fn vec_one_question() -> Vec<String> {
+    vec!["?".into()]
+}
+fn vec_one_t() -> Vec<String> {
+    vec!["t".into()]
+}
+fn vec_one_shift_t() -> Vec<String> {
+    vec!["T".into()]
+}
+fn vec_one_l() -> Vec<String> {
+    vec!["l".into()]
+}
+fn vec_one_f() -> Vec<String> {
+    vec!["f".into()]
+}
+fn vec_one_shift_f() -> Vec<String> {
+    vec!["F".into()]
+}
+fn vec_one_slash() -> Vec<String> {
+    vec!["/".into()]
+}
+fn vec_one_ctrl_p() -> Vec<String> {
+    vec!["ctrl+p".into(), "ctrl+P".into()]
+}
+fn vec_one_escape() -> Vec<String> {
+    vec!["escape".into()]
+}
+fn vec_one_k() -> Vec<String> {
+    vec!["k".into()]
+}
+fn vec_one_up() -> Vec<String> {
+    vec!["up".into()]
+}
+fn vec_one_down() -> Vec<String> {
+    vec!["down".into()]
+}
+fn vec_one_s() -> Vec<String> {
+    vec!["s".into()]
+}
 
 impl Default for Keybindings {
     fn default() -> Self {

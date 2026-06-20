@@ -130,14 +130,20 @@ fn dashboard_layout() -> LayoutDef {
         name: "Dashboard".into(),
         root: split_v(vec![
             area(3, widget("header")),
-            pct(45, split_h(vec![
-                pct(50, widget("cpu")),
-                pct(50, split_v(vec![
-                    pct(33, widget("memory")),
-                    pct(33, widget("storage")),
-                    pct(34, widget("network")),
-                ])),
-            ])),
+            pct(
+                45,
+                split_h(vec![
+                    pct(50, widget("cpu")),
+                    pct(
+                        50,
+                        split_v(vec![
+                            pct(33, widget("memory")),
+                            pct(33, widget("storage")),
+                            pct(34, widget("network")),
+                        ]),
+                    ),
+                ]),
+            ),
             pct(52, widget("processes")),
         ]),
     }
@@ -199,10 +205,10 @@ fn network_focus_layout() -> LayoutDef {
         name: "Network Focus".into(),
         root: split_v(vec![
             area(3, widget("header")),
-            pct(50, split_h(vec![
-                pct(50, widget("network")),
-                pct(50, widget("disk_io")),
-            ])),
+            pct(
+                50,
+                split_h(vec![pct(50, widget("network")), pct(50, widget("disk_io"))]),
+            ),
             fill(widget("processes")),
         ]),
     }
@@ -213,12 +219,15 @@ fn process_focus_layout() -> LayoutDef {
         name: "Process Focus".into(),
         root: split_v(vec![
             area(3, widget("header")),
-            area(8, split_h(vec![
-                pct(25, widget("cpu")),
-                pct(25, widget("memory")),
-                pct(25, widget("storage")),
-                pct(25, widget("network")),
-            ])),
+            area(
+                8,
+                split_h(vec![
+                    pct(25, widget("cpu")),
+                    pct(25, widget("memory")),
+                    pct(25, widget("storage")),
+                    pct(25, widget("network")),
+                ]),
+            ),
             fill(widget("processes")),
         ]),
     }

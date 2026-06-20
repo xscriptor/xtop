@@ -12,11 +12,11 @@ A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratat
 
 </div>
 
-<p align="center"><img src="./assets/icon.png" width="100" alt="Xtop icon" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xtop/logo.svg" width="60" alt="XTop logo" /></p>
 
 <hr>
 
-<h2>Table of Contents</h2>
+<h2>Contents</h2>
 
 <ul>
   <li><a href="#features">Features</a></li>
@@ -26,6 +26,7 @@ A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratat
   <li><a href="#documentation">Documentation</a></li>
   <li><a href="#contributing">Contributing</a></li>
   <li><a href="#license">License</a></li>
+  <li><a href="#x">X</a></li>
 </ul>
 
 <hr>
@@ -116,20 +117,23 @@ cargo run --release</code></pre>
   <li><a href="docs/customization.md">Customization</a> -- custom themes and layouts</li>
   <li><a href="ROADMAP.md">Roadmap</a></li>
   <li><a href="CHANGELOG.md">Changelog</a></li>
+  <li><a id="contributing" href="CONTRIBUTING.md">Contributing</a></li>
+  <li><a id="license" href="LICENSE">License</a></li>
 </ul>
 
 <hr>
 
-<h2 id="contributing">Contributing</h2>
+<div id="x" align="center">
+<h2>X</h2>
 
-<p>Contributions are welcome. See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> for guidelines.</p>
-
-<hr>
-
-<h2 id="license">License</h2>
-
-<p><a href="LICENSE">MIT</a></p>
-
-<div align="center">
-  <a href="https://github.com/xscriptor">---X---</a>
-</div>
+<a href="https://dev.xscriptor.com">
+  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/verified-filled.svg" width="24" alt="X Web" />
+</a>
+ & 
+<a href="https://github.com/xscriptor">
+  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/github.svg" width="24" alt="X Github Profile" />
+</a>
+ & 
+<a href="https://www.xscriptor.com">
+  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/quotes.svg" width="24" alt="Xscriptor web" />
+</a>

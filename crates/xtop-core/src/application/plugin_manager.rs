@@ -67,13 +67,13 @@ impl PluginManager {
         Ok(())
     }
 
-    fn plugin_has_capability(plugin: &Box<dyn Plugin>, cap: &PluginCapability) -> bool {
+    fn plugin_has_capability(plugin: &dyn Plugin, cap: &PluginCapability) -> bool {
         plugin.manifest().capabilities.contains(cap)
     }
 
     fn build_context<'a>(
         base: &std::path::Path,
-        plugin: &Box<dyn Plugin>,
+        plugin: &dyn Plugin,
         state: &'a mut AppState,
     ) -> PluginContext<'a> {
         let id = plugin.manifest().id.clone();
@@ -91,7 +91,7 @@ impl PluginManager {
         let base = self.plugin_data_base.clone();
         for plugin in &mut self.plugins {
             let id = plugin.manifest().id.clone();
-            let mut ctx = Self::build_context(&base, plugin, state);
+            let mut ctx = Self::build_context(&base, &**plugin, state);
             if let Err(e) = plugin.on_tick(&mut ctx) {
                 eprintln!("[plugin:{id}] tick error: {e}");
             }
@@ -104,7 +104,7 @@ impl PluginManager {
         let base = self.plugin_data_base.clone();
         for plugin in &mut self.plugins {
             let id = plugin.manifest().id.clone();
-            let mut ctx = Self::build_context(&base, plugin, state);
+            let mut ctx = Self::build_context(&base, &**plugin, state);
             match plugin.on_key(&mut ctx, key) {
                 Ok(true) => return true,
                 Err(e) => eprintln!("[plugin:{id}] key error: {e}"),
@@ -119,7 +119,7 @@ impl PluginManager {
     pub fn collect_data_providers(&self) -> Vec<Box<dyn SystemDataProvider>> {
         let mut providers: Vec<Box<dyn SystemDataProvider>> = Vec::new();
         for plugin in &self.plugins {
-            if Self::plugin_has_capability(plugin, &PluginCapability::ReadSystemInfo) {
+            if Self::plugin_has_capability(&**plugin, &PluginCapability::ReadSystemInfo) {
                 if let Some(provider) = plugin.data_provider() {
                     providers.push(provider);
                 }
@@ -133,7 +133,7 @@ impl PluginManager {
     pub fn collect_widgets(&self) -> Vec<WidgetRegistration> {
         let mut widgets: Vec<WidgetRegistration> = Vec::new();
         for plugin in &self.plugins {
-            if Self::plugin_has_capability(plugin, &PluginCapability::RenderWidgets) {
+            if Self::plugin_has_capability(&**plugin, &PluginCapability::RenderWidgets) {
                 if let Some(widget) = plugin.widget() {
                     widgets.push(widget);
                 }
@@ -157,7 +157,7 @@ impl PluginManager {
             if plugin.manifest().id != plugin_id {
                 continue;
             }
-            let mut ctx = Self::build_context(&base, plugin, state);
+            let mut ctx = Self::build_context(&base, &**plugin, state);
             return plugin.execute(&mut ctx, action, params);
         }
         Err(PluginError::Recoverable(format!(
@@ -180,7 +180,7 @@ impl PluginManager {
         let base = self.plugin_data_base.clone();
         for plugin in &mut self.plugins {
             let id = plugin.manifest().id.clone();
-            let mut ctx = Self::build_context(&base, plugin, state);
+            let mut ctx = Self::build_context(&base, &**plugin, state);
             if let Err(e) = plugin.on_disable(&mut ctx) {
                 eprintln!("[plugin:{id}] disable error: {e}");
             }

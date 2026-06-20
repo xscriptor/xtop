@@ -4,7 +4,7 @@
 //! MCP module (`xtop_plugin_sentinel::mcp::run_server`) which handles the
 //! actual stdin/stdout MCP protocol loop.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use xtop_core::application::plugin_manager::PluginManager;
 use xtop_core::application::state::AppState;
 use xtop_core::infrastructure::composite_provider::CompositeProvider;
@@ -27,7 +27,7 @@ pub fn run_mcp_server() -> anyhow::Result<()> {
     // Delegate to Sentinel's MCP module
     #[cfg(feature = "plugin-sentinel")]
     {
-        return xtop_plugin_sentinel::mcp::run_server(&mut state);
+        xtop_plugin_sentinel::mcp::run_server(&mut state)
     }
 
     #[cfg(not(feature = "plugin-sentinel"))]
@@ -42,7 +42,7 @@ fn config_dir() -> PathBuf {
     xtop_core::infrastructure::config::config_dir()
 }
 
-fn build_plugin_manager(state: &mut AppState, cfg_dir: &PathBuf) -> PluginManager {
+fn build_plugin_manager(state: &mut AppState, cfg_dir: &Path) -> PluginManager {
     let plugins_dir = cfg_dir.join("plugins");
     std::fs::create_dir_all(&plugins_dir).ok();
     let mut mgr = PluginManager::new(plugins_dir);
@@ -58,7 +58,7 @@ fn build_plugin_manager(state: &mut AppState, cfg_dir: &PathBuf) -> PluginManage
     mgr
 }
 
-fn initialize_state(cfg_dir: &PathBuf) -> anyhow::Result<AppState> {
+fn initialize_state(cfg_dir: &Path) -> anyhow::Result<AppState> {
     let sysinfo_provider = SysinfoProvider::new();
     let composite = CompositeProvider::new(Box::new(sysinfo_provider));
 

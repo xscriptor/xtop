@@ -55,12 +55,13 @@ impl std::fmt::Display for PluginError {
 
 impl std::error::Error for PluginError {}
 
+type RenderFn =
+    std::sync::Arc<dyn Fn(&mut ratatui::Frame, &AppState, ratatui::prelude::Rect) + Send + Sync>;
+
 /// A widget that a plugin registers for rendering in the TUI.
 pub struct WidgetRegistration {
     pub name: String,
-    pub render: std::sync::Arc<
-        dyn Fn(&mut ratatui::Frame, &AppState, ratatui::prelude::Rect) + Send + Sync,
-    >,
+    pub render: RenderFn,
 }
 
 impl Debug for WidgetRegistration {

@@ -1,0 +1,21 @@
+{
+    // Process Focus: mini stats row at top, full process list below
+    "name": "Process Focus",
+    "root": {
+        "direction": "vertical",
+        "areas": [
+            { "widget": "header", "size": 3 },
+            {
+                "direction": "horizontal",
+                "size": 8,
+                "areas": [
+                    { "widget": "cpu", "size": "25%" },
+                    { "widget": "memory", "size": "25%" },
+                    { "widget": "storage", "size": "25%" },
+                    { "widget": "network", "size": "25%" }
+                ]
+            },
+            { "widget": "processes", "size": "*" }
+        ]
+    }
+}

@@ -1,0 +1,15 @@
+{
+    // Vertical: all widgets stacked top-to-bottom
+    "name": "Vertical",
+    "root": {
+        "direction": "vertical",
+        "areas": [
+            { "widget": "header", "size": 3 },
+            { "widget": "cpu", "size": 8 },
+            { "widget": "memory", "size": 8 },
+            { "widget": "storage", "size": 6 },
+            { "widget": "network", "size": 5 },
+            { "widget": "processes", "size": "*" }
+        ]
+    }
+}

@@ -1,0 +1,9 @@
+{
+    // Berlin -- Black bg, full grayscale ramp
+    "name": "berlin",
+    "palette": [
+        "#000000", "#999999", "#bbbbbb", "#dddddd", "#888888", "#aaaaaa", "#cccccc",
+        "#cccccc", "#333333", "#bbbbbb", "#dddddd", "#ffffff", "#aaaaaa", "#cccccc",
+        "#eeeeee", "#ffffff"
+    ]
+}

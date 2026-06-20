@@ -1,18 +1,57 @@
-<h1 align="center"> Xtop </h1>
+<h1 align="center">Xtop</h1>
 
 <div align="center">
 
-![rust](https://xscriptor.github.io/badges/languages/rust.svg) ![mit](https://xscriptor.github.io/badges/licenses/mit.svg) ![shell](https://xscriptor.github.io/badges/languages/shell.svg) ![powershell](https://xscriptor.github.io/badges/languages/powershell.svg) ![xtop](https://xscriptor.github.io/badges/software/xtop.svg)
+![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![CI](https://img.shields.io/github/actions/workflow/status/xscriptor/xtop/ci.yml?branch=main)
+![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)
+![ratatui](https://img.shields.io/badge/built%20with-ratatui-red)
 
-xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily inspired by btop, it leverages Rust's safety and performance, powered by ratatui for the interface and sysinfo for real-time metrics.
+A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratatui.rs">ratatui</a> for the terminal interface and <a href="https://github.com/GuillaumeGomez/sysinfo">sysinfo</a> for real-time system metrics.
 
 </div>
 
-<p align="center"><img src="./assets/icon.png" width="100" alt="Xscriptor logo" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xtop/logo.svg" width="60" alt="XTop logo" /></p>
 
----
+<hr>
 
-# Previews
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#features">Features</a></li>
+  <li><a href="#previews">Previews</a></li>
+  <li><a href="#quick-install">Quick Install</a></li>
+  <li><a href="#quick-start">Quick Start</a></li>
+  <li><a href="#documentation">Documentation</a></li>
+  <li><a href="#contributing">Contributing</a></li>
+  <li><a href="#license">License</a></li>
+  <li><a href="#x">X</a></li>
+</ul>
+
+<hr>
+
+<h2 id="features">Features</h2>
+
+<ul>
+  <li>CPU usage per core with temperature sensing</li>
+  <li>RAM and Swap monitoring with historical chart</li>
+  <li>Network RX/TX tracking per interface</li>
+  <li>Storage and Disk I/O visualization</li>
+  <li>Process list with live search</li>
+  <li>GPU and Battery monitoring (stub, ready for supported hardware)</li>
+  <li>13 color themes with custom theme support via JSONC</li>
+  <li>7 built-in layouts with custom layout support via JSONC</li>
+  <li>Full-screen mode for any widget</li>
+  <li>Configurable alert thresholds</li>
+  <li>Persistent configuration</li>
+</ul>
+
+<p>See <a href="docs/features.md">docs/features.md</a> for a detailed feature breakdown.</p>
+
+<hr>
+
+<h2 id="previews">Previews</h2>
 
 <p align="center">
   <a href="./assets/previews/preview1.png">
@@ -20,149 +59,81 @@ xtop is a modern, cross-platform TUI system monitor crafted in Rust. Heavily ins
   </a>
 </p>
 
-<details>
-  <summary>More previews</summary>
+<p align="center">
+  <a href="./assets/previews">View more previews</a>
+</p>
 
-  <table>
-    <tr>
-      <td align="center">
-        <a href="./assets/previews/preview2.png">
-          <img src="./assets/previews/preview2.png" alt="Preview 2" width="380"/>
-        </a>
-      </td>
-      <td align="center">
-        <a href="./assets/previews/preview3.png">
-          <img src="./assets/previews/preview3.png" alt="Preview 3" width="380"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <a href="./assets/previews/preview4.png">
-          <img src="./assets/previews/preview4.png" alt="Preview 4" width="380"/>
-        </a>
-      </td>
-      <td align="center">
-      </td>
-    </tr>
-  </table>
-</details>
+<hr>
 
-## Features
+<h2 id="quick-install">Quick Install</h2>
 
-- **Cross-Platform:** Runs on macOS, Linux, and Windows.
-- **System Monitoring:**
-  - **CPU:** Usage per core/thread, maximum temperature sensing.
-  - **Memory:** RAM and Swap usage with historical graphing.
-  - **Network:** Real-time upload and download tracking.
-  - **Disks:** Storage usage visualization.
-  - **Processes:** List of running processes sorted by CPU usage.
-- **Theming:**
-  - Includes 13 built-in color schemes (e.g., Dracula-like 'x', Madrid, Tokio, etc.).
-  - Cycle through themes instantly without configuration files.
-- **Layouts:**
-  - **Dashboard:** Balanced view of all components (Default).
-  - **Vertical:** Stacked view, good for narrow terminals.
-  - **Process Focus:** Maximizes space for the process list while keeping essential stats visible.
+<h3>macOS / Linux</h3>
 
-## Installation
+<pre><code>curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash</code></pre>
 
-### Quick Install (macOS/Linux)
+<h3>Windows (PowerShell)</h3>
 
-The installer script automatically detects your distribution and installs all required dependencies (including Rust if needed).
+<pre><code>irm https://raw.githubusercontent.com/xscriptor/xtop/main/install.ps1 | iex</code></pre>
 
-**Install with curl:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash
-```
+<h3>Build from Source</h3>
 
-**Or with wget:**
-```bash
-wget -qO- https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash
-```
+<pre><code>git clone https://github.com/xscriptor/xtop.git
+cd xtop
+cargo run --release</code></pre>
 
-**Uninstall:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash -s -- --uninstall
-```
+<p>For detailed installation instructions, see <a href="docs/installation.md">docs/installation.md</a>.</p>
 
-<details>
-<summary>Installer Options</summary>
+<hr>
 
-You can also run the installer with additional options:
+<h2 id="quick-start">Quick Start</h2>
 
-```bash
-# Check dependencies without installing
-./install.sh --check-deps
+<p>Run <code>xtop</code> after installation. Key controls:</p>
 
-# Install only dependencies (Rust, build tools)
-./install.sh --install-deps
+<table>
+  <thead>
+    <tr><th>Key</th><th>Action</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><kbd>q</kbd></td><td>Quit (saves config)</td></tr>
+    <tr><td><kbd>?</kbd></td><td>Toggle help overlay</td></tr>
+    <tr><td><kbd>t</kbd> / <kbd>T</kbd></td><td>Next / previous theme</td></tr>
+    <tr><td><kbd>l</kbd></td><td>Next layout mode</td></tr>
+    <tr><td><kbd>f</kbd> / <kbd>F</kbd></td><td>Toggle / cycle full-screen</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Search processes</td></tr>
+  </tbody>
+</table>
 
-# Show help
-./install.sh --help
-```
+<p>For full usage details, see <a href="docs/usage.md">docs/usage.md</a>.</p>
 
-**Supported distributions:** Arch, Debian/Ubuntu, Fedora/RHEL, openSUSE, Alpine, and derivatives.
+<hr>
 
-</details>
+<h2 id="documentation">Documentation</h2>
 
-### Quick Install (Windows PowerShell)
+<ul>
+  <li><a href="docs/features.md">Features</a> -- detailed feature breakdown</li>
+  <li><a href="docs/installation.md">Installation</a> -- full install and uninstall guide</li>
+  <li><a href="docs/usage.md">Usage</a> -- keybindings, modules, help overlay</li>
+  <li><a href="docs/configuration.md">Configuration</a> -- config file and settings reference</li>
+  <li><a href="docs/customization.md">Customization</a> -- custom themes and layouts</li>
+  <li><a href="ROADMAP.md">Roadmap</a></li>
+  <li><a href="CHANGELOG.md">Changelog</a></li>
+  <li><a id="contributing" href="CONTRIBUTING.md">Contributing</a></li>
+  <li><a id="license" href="LICENSE">License</a></li>
+</ul>
 
-Requires [Rust (Cargo)](https://rustup.rs/) installed. Run in PowerShell:
+<hr>
 
-**Install:**
-```powershell
-irm https://raw.githubusercontent.com/xscriptor/xtop/main/install.ps1 | iex
-```
+<div id="x" align="center">
+<h2>X</h2>
 
-**Uninstall:**
-```powershell
-irm https://raw.githubusercontent.com/xscriptor/xtop/main/uninstall.ps1 | iex
-```
-
-### Build from Source
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/xscriptor/xtop.git
-   cd xtop
-   ```
-
-2. Build and run:
-   ```bash
-   cargo run --release
-   ```
-
-## Usage
-
-### Keybindings
-
-| Key | Action |
-| --- | --- |
-| `q` | Quit application |
-| `t` | Next Color Theme |
-| `T` | Previous Color Theme |
-| `l` | Toggle Layout Mode (Dashboard -> Vertical -> Process Focus) |
-
-### Modules
-
-1. **Header**: Shows system uptime, load average, current theme, and layout mode.
-2. **CPU**: Shows usage bars for each CPU core. If sensors are available, shows the maximum CPU temperature.
-3. **Memory**: Gauges for RAM and Swap usage, plus a line chart for RAM history.
-4. **Network**: Total downloaded (RX) and uploaded (TX) data.
-5. **Processes**: A scrolling list of the top 50 processes sorted by CPU usage.
-
-## Configuration
-
-Currently, `xtop` is zero-config. All preferences (theme, layout) can be toggled at runtime but are reset on restart. Future versions may include a config file.
-
-## Contributing
-
-Contributions are always welcome! Please read the [contribution guidelines](CONTRIBUTING.md) first.
-
-## License
-[MIT](LICENSE)
-
-<div align="center">
-<a href="https://github.com/xscriptor">---X---</a>
-</div>
+<a href="https://dev.xscriptor.com">
+  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/verified-filled.svg" width="24" alt="X Web" />
+</a>
+ & 
+<a href="https://github.com/xscriptor">
+  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/github.svg" width="24" alt="X Github Profile" />
+</a>
+ & 
+<a href="https://www.xscriptor.com">
+  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/quotes.svg" width="24" alt="Xscriptor web" />
+</a>

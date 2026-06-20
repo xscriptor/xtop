@@ -1,0 +1,9 @@
+{
+    // Bogota -- Very dark brown bg, warm pastel accents
+    "name": "bogota",
+    "palette": [
+        "#200b0a", "#fc618d", "#7bd88f", "#ffed89", "#47e6ff", "#ff9999", "#47e6ff",
+        "#f7f1ff", "#525053", "#fc618d", "#7bd88f", "#ffed89", "#47e6ff", "#ff9999",
+        "#47e6ff", "#f7f1ff"
+    ]
+}

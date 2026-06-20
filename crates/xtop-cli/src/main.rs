@@ -1,6 +1,6 @@
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use xtop_core::application::plugin_manager::PluginManager;
 use xtop_core::application::state::{AppState, Config, InputMode, PalettePage};
@@ -174,7 +174,7 @@ fn save_config(state: &AppState) {
     let _ = config::save_config(&cfg);
 }
 
-fn build_plugin_manager(state: &mut AppState, cfg_dir: &PathBuf) -> PluginManager {
+fn build_plugin_manager(state: &mut AppState, cfg_dir: &Path) -> PluginManager {
     let plugins_dir = cfg_dir.join("plugins");
     fs::create_dir_all(&plugins_dir).ok();
     let mut mgr = PluginManager::new(plugins_dir);
@@ -417,7 +417,7 @@ fn cmd_plugin_install(name_or_url: &str) -> anyhow::Result<()> {
     println!("Building xtop with {pkg_name} ...");
     let build = std::process::Command::new("cargo")
         .args(["build", "--release"])
-        .current_dir(&workspace_dir)
+        .current_dir(workspace_dir)
         .status()
         .map_err(|e| anyhow::anyhow!("cargo build failed: {e}"))?;
     if !build.success() {

@@ -112,6 +112,12 @@ pub struct SentinelPlugin {
     spawn_history: HashMap<String, Vec<(u32, u64)>>,
 }
 
+impl Default for SentinelPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SentinelPlugin {
     pub fn new() -> Self {
         Self {
@@ -218,10 +224,10 @@ impl SentinelPlugin {
                 fields.iter().any(|f| match *f {
                     "name" => re.is_match(&p.name),
                     "cmd" => re.is_match(&p.cmd),
-                    "user" => p.user_id.as_deref().map_or(false, |u| re.is_match(u)),
+                    "user" => p.user_id.as_deref().is_some_and(|u| re.is_match(u)),
                     "state" => re.is_match(&p.state),
-                    "exe" => p.exe_path.as_deref().map_or(false, |e| re.is_match(e)),
-                    "cwd" => p.cwd.as_deref().map_or(false, |c| re.is_match(c)),
+                    "exe" => p.exe_path.as_deref().is_some_and(|e| re.is_match(e)),
+                    "cwd" => p.cwd.as_deref().is_some_and(|c| re.is_match(c)),
                     _ => false,
                 })
             })
@@ -258,7 +264,7 @@ impl SentinelPlugin {
             procs.retain(|p| {
                 re.is_match(&p.name)
                     || re.is_match(&p.cmd)
-                    || p.exe_path.as_deref().map_or(false, |e| re.is_match(e))
+                    || p.exe_path.as_deref().is_some_and(|e| re.is_match(e))
             });
         }
 
@@ -328,10 +334,7 @@ impl SentinelPlugin {
 
     /// Rule 3: Process masquerading (name != exe file stem OR system name not at canonical path).
     fn rule_masquerading(&self, proc: &ProcessInfo) -> Option<SentinelAlert> {
-        let exe = match proc.exe_path.as_deref() {
-            Some(e) => e,
-            None => return None,
-        };
+        let exe = proc.exe_path.as_deref()?;
         // Extract file stem from exe
         let stem = std::path::Path::new(exe)
             .file_stem()
@@ -383,14 +386,8 @@ impl SentinelPlugin {
 
     /// Rule 4: Privilege escalation (EUID != UID).
     fn rule_privilege_escalation(&self, proc: &ProcessInfo) -> Option<SentinelAlert> {
-        let euid = match proc.effective_user_id.as_deref() {
-            Some(u) => u,
-            None => return None,
-        };
-        let uid = match proc.user_id.as_deref() {
-            Some(u) => u,
-            None => return None,
-        };
+        let euid = proc.effective_user_id.as_deref()?;
+        let uid = proc.user_id.as_deref()?;
         if euid == uid {
             return None;
         }
@@ -433,14 +430,8 @@ impl SentinelPlugin {
         proc: &ProcessInfo,
         parent_map: &HashMap<u32, &ProcessInfo>,
     ) -> Option<SentinelAlert> {
-        let ppid = match proc.parent_pid {
-            Some(pid) => pid,
-            None => return None,
-        };
-        let parent = match parent_map.get(&ppid) {
-            Some(p) => p,
-            None => return None,
-        };
+        let ppid = proc.parent_pid?;
+        let parent = parent_map.get(&ppid)?;
         let parent_lower = parent.name.to_lowercase();
         let is_browser = BROWSER_NAMES.iter().any(|b| parent_lower.contains(b));
         if !is_browser {
@@ -479,7 +470,7 @@ impl SentinelPlugin {
         if KNOWN_THREAT_CMDS.iter().any(|t| {
             Regex::new(t)
                 .ok()
-                .map_or(false, |re| re.is_match(&cmd_joined))
+                .is_some_and(|re| re.is_match(&cmd_joined))
         }) {
             return Some(SentinelAlert::new(
                 "known_threat_pattern",
@@ -695,7 +686,7 @@ impl Plugin for SentinelPlugin {
 
     fn on_tick(&mut self, ctx: &mut PluginContext) -> Result<(), PluginError> {
         self.tick_count += 1;
-        if self.tick_count % 5 == 0 {
+        if self.tick_count.is_multiple_of(5) {
             self.alerts = self.analyze_processes(ctx);
         }
         Ok(())

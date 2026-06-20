@@ -78,12 +78,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     list_state.select(Some(state.palette.selected));
 
     let list = List::new(items)
-        .highlight_style(
-            Style::default()
-                .fg(bg)
-                .bg(fg)
-                .add_modifier(Modifier::BOLD),
-        )
+        .highlight_style(Style::default().fg(bg).bg(fg).add_modifier(Modifier::BOLD))
         .highlight_symbol("▸ ");
     f.render_stateful_widget(list, list_area, &mut list_state);
 }

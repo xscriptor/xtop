@@ -32,10 +32,30 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
             .constraints([Constraint::Length(4), Constraint::Min(0)])
             .split(inner);
 
-        render_stats(f, state, chunks[0], fg, total_rx, total_tx, total_rx_speed, total_tx_speed, &snap.networks);
+        render_stats(
+            f,
+            state,
+            chunks[0],
+            fg,
+            total_rx,
+            total_tx,
+            total_rx_speed,
+            total_tx_speed,
+            &snap.networks,
+        );
         render_net_chart(f, state, chunks[1], bg);
     } else {
-        render_stats(f, state, inner, fg, total_rx, total_tx, total_rx_speed, total_tx_speed, &snap.networks);
+        render_stats(
+            f,
+            state,
+            inner,
+            fg,
+            total_rx,
+            total_tx,
+            total_rx_speed,
+            total_tx_speed,
+            &snap.networks,
+        );
     }
 }
 
@@ -137,14 +157,10 @@ fn render_net_chart(f: &mut Frame, state: &AppState, area: Rect, _bg: Color) {
                 .bounds([x_min, x_max])
                 .labels(vec![Span::raw("")]),
         )
-        .y_axis(
-            Axis::default()
-                .bounds([0.0, max_val])
-                .labels(vec![
-                    Span::raw("0"),
-                    Span::raw(format!("{:.0}", max_val / 2.0)),
-                    Span::raw(format!("{:.0}", max_val)),
-                ]),
-        );
+        .y_axis(Axis::default().bounds([0.0, max_val]).labels(vec![
+            Span::raw("0"),
+            Span::raw(format!("{:.0}", max_val / 2.0)),
+            Span::raw(format!("{:.0}", max_val)),
+        ]));
     f.render_widget(chart, area);
 }

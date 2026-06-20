@@ -58,7 +58,9 @@ impl std::error::Error for PluginError {}
 /// A widget that a plugin registers for rendering in the TUI.
 pub struct WidgetRegistration {
     pub name: String,
-    pub render: std::sync::Arc<dyn Fn(&mut ratatui::Frame, &AppState, ratatui::prelude::Rect) + Send + Sync>,
+    pub render: std::sync::Arc<
+        dyn Fn(&mut ratatui::Frame, &AppState, ratatui::prelude::Rect) + Send + Sync,
+    >,
 }
 
 impl Debug for WidgetRegistration {
@@ -111,7 +113,12 @@ impl PluginContext<'_> {
 
     /// Set alert thresholds for CPU, memory, and disk.
     /// Requires `ModifyConfig` capability.
-    pub fn set_alert_thresholds(&mut self, cpu: f64, mem: f64, disk: f64) -> Result<(), PluginError> {
+    pub fn set_alert_thresholds(
+        &mut self,
+        cpu: f64,
+        mem: f64,
+        disk: f64,
+    ) -> Result<(), PluginError> {
         self.check_capability(&PluginCapability::ModifyConfig)?;
         self.state.set_alert_thresholds(cpu, mem, disk);
         Ok(())
@@ -182,11 +189,7 @@ pub trait Plugin: Debug + Send {
 
     /// Called when a key is pressed.
     /// Return `Ok(true)` if the plugin consumed the key event.
-    fn on_key(
-        &mut self,
-        _ctx: &mut PluginContext,
-        _key: &str,
-    ) -> Result<bool, PluginError> {
+    fn on_key(&mut self, _ctx: &mut PluginContext, _key: &str) -> Result<bool, PluginError> {
         Ok(false)
     }
 

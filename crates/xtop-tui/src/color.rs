@@ -17,4 +17,3 @@ pub fn gauge_gradient(pct: f64, alert_at: f64) -> usize {
         2
     }
 }
-

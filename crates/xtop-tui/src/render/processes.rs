@@ -43,7 +43,11 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     // Sort
     match state.process_sort {
         xtop_core::application::state::ProcessSortBy::Cpu => {
-            items.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
+            items.sort_by(|a, b| {
+                b.cpu_usage
+                    .partial_cmp(&a.cpu_usage)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
         }
         xtop_core::application::state::ProcessSortBy::Memory => {
             items.sort_by_key(|b| std::cmp::Reverse(b.memory));
@@ -93,11 +97,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let table = Table::new(rows, widths)
         .header(
             Row::new(vec!["PID", "Name", "CPU%", "Mem", "User"])
-                .style(
-                    Style::default()
-                        .fg(accent)
-                        .add_modifier(Modifier::BOLD),
-                )
+                .style(Style::default().fg(accent).add_modifier(Modifier::BOLD))
                 .bottom_margin(1),
         )
         .row_highlight_style(

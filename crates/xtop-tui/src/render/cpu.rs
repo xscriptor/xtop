@@ -128,15 +128,11 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
                         .bounds([x_min, x_max])
                         .labels(vec![Span::raw("")]),
                 )
-                .y_axis(
-                    Axis::default()
-                        .bounds([0.0, 100.0])
-                        .labels(vec![
-                            Span::raw("0%"),
-                            Span::raw("50%"),
-                            Span::raw("100%"),
-                        ]),
-                );
+                .y_axis(Axis::default().bounds([0.0, 100.0]).labels(vec![
+                    Span::raw("0%"),
+                    Span::raw("50%"),
+                    Span::raw("100%"),
+                ]));
             f.render_widget(chart, chart_area);
         }
     }

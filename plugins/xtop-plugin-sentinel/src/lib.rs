@@ -1,11 +1,11 @@
 pub mod alert;
 pub mod mcp;
 
-use std::collections::HashMap;
-use std::fmt::Debug;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph};
 use regex::Regex;
+use std::collections::HashMap;
+use std::fmt::Debug;
 use xtop_core::application::state::AppState;
 use xtop_core::domain::metrics::ProcessInfo;
 use xtop_core::domain::plugin::{
@@ -18,9 +18,20 @@ use alert::{SentinelAlert, Severity};
 // Known threat patterns (Rule 6)
 // ---------------------------------------------------------------------------
 const KNOWN_THREAT_NAMES: &[&str] = &[
-    "minerd", "cpu_miner", "xmrig", "kdevtmpfsi", "kinsing", "diagree",
-    "watchbog", "sysguard", "crond64", "mkfile", "sysupdate",
-    "xmrig-nvidia", "xmrig-amd", "moneroocean",
+    "minerd",
+    "cpu_miner",
+    "xmrig",
+    "kdevtmpfsi",
+    "kinsing",
+    "diagree",
+    "watchbog",
+    "sysguard",
+    "crond64",
+    "mkfile",
+    "sysupdate",
+    "xmrig-nvidia",
+    "xmrig-amd",
+    "moneroocean",
 ];
 
 const KNOWN_THREAT_CMDS: &[&str] = &[
@@ -44,8 +55,8 @@ const SUSPICIOUS_PATH_PREFIXES: &[&str] = &[
 
 /// Processes allowed to be orphans (PPID=1).
 const ALLOWED_ORPHANS: &[&str] = &[
-    "systemd", "init", "launchd", "sshd", "login", "getty", "nginx",
-    "apache2", "httpd", "bash", "sh", "zsh", "tmux", "screen",
+    "systemd", "init", "launchd", "sshd", "login", "getty", "nginx", "apache2", "httpd", "bash",
+    "sh", "zsh", "tmux", "screen",
 ];
 
 /// Browsers whose children are monitored (Rule 5).
@@ -55,8 +66,14 @@ const BROWSER_NAMES: &[&str] = &[
 
 /// Browser helper/sandbox processes that are allowed children.
 const BROWSER_HELPERS: &[&str] = &[
-    "helper", "plugin_container", "plugin_host", "gpu_process",
-    "renderer", "utility", "crashpad", "updater",
+    "helper",
+    "plugin_container",
+    "plugin_host",
+    "gpu_process",
+    "renderer",
+    "utility",
+    "crashpad",
+    "updater",
 ];
 
 /// Pipe/download patterns for Rule 7.
@@ -74,8 +91,8 @@ const PIPE_PATTERNS: &[&str] = &[
 
 /// High-thread-count processes that are allowed (Rule 8).
 const ALLOWED_HIGH_THREAD: &[&str] = &[
-    "chrome", "firefox", "code", "Code", "idea", "java", "dotnet",
-    "python", "node", "mysqld", "postgres", "Xorg", "dockerd",
+    "chrome", "firefox", "code", "Code", "idea", "java", "dotnet", "python", "node", "mysqld",
+    "postgres", "Xorg", "dockerd",
 ];
 
 /// Maximum alerts per cycle
@@ -149,8 +166,8 @@ impl SentinelPlugin {
 
     fn system_summary(&self, ctx: &PluginContext) -> String {
         let snap = ctx.snapshot();
-        let cpu_pct: f64 = snap.cpus.iter().map(|c| c.usage).sum::<f64>()
-            / snap.cpus.len().max(1) as f64;
+        let cpu_pct: f64 =
+            snap.cpus.iter().map(|c| c.usage).sum::<f64>() / snap.cpus.len().max(1) as f64;
         let mem_gb = (snap.memory.used as f64 / 1073741824.0 * 10.0).round() / 10.0;
         let mem_total_gb = (snap.memory.total as f64 / 1073741824.0 * 10.0).round() / 10.0;
         let net_ifaces: Vec<&str> = snap.networks.iter().map(|n| n.name.as_str()).collect();
@@ -166,7 +183,8 @@ impl SentinelPlugin {
             "uptime_secs": snap.uptime,
             "hostname": snap.sys_info.hostname,
             "alerts": self.alerts.len(),
-        })).unwrap_or_default()
+        }))
+        .unwrap_or_default()
     }
 
     // -----------------------------------------------------------------------
@@ -184,12 +202,13 @@ impl SentinelPlugin {
 
         let pattern_str = pattern_str.trim();
         if pattern_str.is_empty() {
-            return Err(PluginError::Recoverable("search pattern cannot be empty".into()));
+            return Err(PluginError::Recoverable(
+                "search pattern cannot be empty".into(),
+            ));
         }
 
-        let re = Regex::new(pattern_str).map_err(|e| {
-            PluginError::Recoverable(format!("invalid regex: {e}"))
-        })?;
+        let re = Regex::new(pattern_str)
+            .map_err(|e| PluginError::Recoverable(format!("invalid regex: {e}")))?;
 
         let snap = ctx.snapshot();
         let mut matched: Vec<ProcessInfo> = snap
@@ -208,7 +227,11 @@ impl SentinelPlugin {
             })
             .collect();
 
-        matched.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
+        matched.sort_by(|a, b| {
+            b.cpu_usage
+                .partial_cmp(&a.cpu_usage)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         matched.truncate(100);
         Ok(Self::fmt_process_list(&matched))
     }
@@ -230,10 +253,13 @@ impl SentinelPlugin {
         let mut procs: Vec<ProcessInfo> = snap.processes;
 
         if let Some(pattern) = filter_pattern {
-            let re = Regex::new(pattern).map_err(|e| {
-                PluginError::Recoverable(format!("invalid regex in filter: {e}"))
-            })?;
-            procs.retain(|p| re.is_match(&p.name) || re.is_match(&p.cmd) || p.exe_path.as_deref().map_or(false, |e| re.is_match(e)));
+            let re = Regex::new(pattern)
+                .map_err(|e| PluginError::Recoverable(format!("invalid regex in filter: {e}")))?;
+            procs.retain(|p| {
+                re.is_match(&p.name)
+                    || re.is_match(&p.cmd)
+                    || p.exe_path.as_deref().map_or(false, |e| re.is_match(e))
+            });
         }
 
         procs.truncate(count);
@@ -241,13 +267,15 @@ impl SentinelPlugin {
     }
 
     fn process_info(&self, ctx: &PluginContext, pid_str: &str) -> Result<String, PluginError> {
-        let pid = pid_str.parse::<u32>().map_err(|_| {
-            PluginError::Recoverable(format!("invalid pid: {pid_str}"))
-        })?;
+        let pid = pid_str
+            .parse::<u32>()
+            .map_err(|_| PluginError::Recoverable(format!("invalid pid: {pid_str}")))?;
         let snap = ctx.snapshot();
-        let proc = snap.processes.iter().find(|p| p.pid == pid).ok_or_else(|| {
-            PluginError::Recoverable(format!("process {pid} not found"))
-        })?;
+        let proc = snap
+            .processes
+            .iter()
+            .find(|p| p.pid == pid)
+            .ok_or_else(|| PluginError::Recoverable(format!("process {pid} not found")))?;
         Ok(serde_json::to_string(&Self::fmt_process(proc)).unwrap_or_default())
     }
 
@@ -280,7 +308,11 @@ impl SentinelPlugin {
         if ALLOWED_ORPHANS.iter().any(|a| name_lower.contains(a)) {
             return None;
         }
-        let severity = if proc.run_time < 60 { Severity::Critical } else { Severity::Warning };
+        let severity = if proc.run_time < 60 {
+            Severity::Critical
+        } else {
+            Severity::Warning
+        };
         Some(SentinelAlert::new(
             "orphan_process",
             severity,
@@ -311,15 +343,20 @@ impl SentinelPlugin {
         // Check if name is a known system process but exe is not at a canonical path
         let known_system_names = ["svchost", "lsass", "launchd", "sshd", "systemd", "init"];
         if known_system_names.contains(&name_lower.as_str()) {
-            let canonical = exe.starts_with("/usr/") || exe.starts_with("/bin/")
-                || exe.starts_with("/sbin/") || exe.starts_with("/System/");
+            let canonical = exe.starts_with("/usr/")
+                || exe.starts_with("/bin/")
+                || exe.starts_with("/sbin/")
+                || exe.starts_with("/System/");
             if !canonical {
                 return Some(SentinelAlert::new(
                     "process_masquerading",
                     Severity::Critical,
                     proc.pid,
                     proc.name.clone(),
-                    format!("process name '{}' masquerades as system process; exe: {exe}", proc.name),
+                    format!(
+                        "process name '{}' masquerades as system process; exe: {exe}",
+                        proc.name
+                    ),
                 ));
             }
         }
@@ -333,7 +370,10 @@ impl SentinelPlugin {
                     Severity::Warning,
                     proc.pid,
                     proc.name.clone(),
-                    format!("name '{}' differs from exe stem '{stem}' ({exe})", proc.name),
+                    format!(
+                        "name '{}' differs from exe stem '{stem}' ({exe})",
+                        proc.name
+                    ),
                 ));
             }
         }
@@ -355,15 +395,29 @@ impl SentinelPlugin {
             return None;
         }
         // Known SUID binaries that are allowed
-        let known_suid = ["/usr/bin/sudo", "/usr/bin/passwd", "/bin/ping",
-            "/usr/bin/ping", "/bin/su", "/usr/bin/su", "/usr/bin/newgrp",
-            "/usr/bin/gpasswd", "/usr/bin/chsh", "/usr/bin/chfn",
-            "/usr/bin/mount", "/usr/bin/umount"];
+        let known_suid = [
+            "/usr/bin/sudo",
+            "/usr/bin/passwd",
+            "/bin/ping",
+            "/usr/bin/ping",
+            "/bin/su",
+            "/usr/bin/su",
+            "/usr/bin/newgrp",
+            "/usr/bin/gpasswd",
+            "/usr/bin/chsh",
+            "/usr/bin/chfn",
+            "/usr/bin/mount",
+            "/usr/bin/umount",
+        ];
         let exe = proc.exe_path.as_deref().unwrap_or("");
         if known_suid.contains(&exe) {
             return None;
         }
-        let severity = if euid == "0" { Severity::Critical } else { Severity::Warning };
+        let severity = if euid == "0" {
+            Severity::Critical
+        } else {
+            Severity::Warning
+        };
         Some(SentinelAlert::new(
             "privilege_escalation",
             severity,
@@ -374,7 +428,11 @@ impl SentinelPlugin {
     }
 
     /// Rule 5: Suspicious child of a browser process.
-    fn rule_suspicious_child_of_browser(&self, proc: &ProcessInfo, parent_map: &HashMap<u32, &ProcessInfo>) -> Option<SentinelAlert> {
+    fn rule_suspicious_child_of_browser(
+        &self,
+        proc: &ProcessInfo,
+        parent_map: &HashMap<u32, &ProcessInfo>,
+    ) -> Option<SentinelAlert> {
         let ppid = match proc.parent_pid {
             Some(pid) => pid,
             None => return None,
@@ -398,7 +456,10 @@ impl SentinelPlugin {
             Severity::Warning,
             proc.pid,
             proc.name.clone(),
-            format!("browser '{}' spawned unknown child '{}'", parent.name, proc.name),
+            format!(
+                "browser '{}' spawned unknown child '{}'",
+                parent.name, proc.name
+            ),
         ))
     }
 
@@ -416,7 +477,9 @@ impl SentinelPlugin {
         }
         let cmd_joined = proc.cmd_full.join(" ").to_lowercase();
         if KNOWN_THREAT_CMDS.iter().any(|t| {
-            Regex::new(t).ok().map_or(false, |re| re.is_match(&cmd_joined))
+            Regex::new(t)
+                .ok()
+                .map_or(false, |re| re.is_match(&cmd_joined))
         }) {
             return Some(SentinelAlert::new(
                 "known_threat_pattern",
@@ -467,7 +530,10 @@ impl SentinelPlugin {
             severity,
             proc.pid,
             proc.name.clone(),
-            format!("{} threads (CPU: {:.1}%)", proc.thread_count, proc.cpu_usage),
+            format!(
+                "{} threads (CPU: {:.1}%)",
+                proc.thread_count, proc.cpu_usage
+            ),
         ))
     }
 
@@ -477,8 +543,10 @@ impl SentinelPlugin {
             return None;
         }
         let name_lower = proc.name.to_lowercase();
-        let allowed = ["mysql", "postgres", "nginx", "httpd", "apache",
-            "chrome", "firefox", "code", "java", "dotnet", "dockerd"];
+        let allowed = [
+            "mysql", "postgres", "nginx", "httpd", "apache", "chrome", "firefox", "code", "java",
+            "dotnet", "dockerd",
+        ];
         if allowed.iter().any(|a| name_lower.contains(a)) {
             return None;
         }
@@ -492,18 +560,11 @@ impl SentinelPlugin {
     }
 
     /// Rule 10: Spawn storm detection.
-    fn rule_spawn_storm(
-        &mut self,
-        proc: &ProcessInfo,
-        now_run_time: u64,
-    ) -> Option<SentinelAlert> {
+    fn rule_spawn_storm(&mut self, proc: &ProcessInfo, now_run_time: u64) -> Option<SentinelAlert> {
         if proc.run_time > 120 {
             return None;
         }
-        let entry = self
-            .spawn_history
-            .entry(proc.name.clone())
-            .or_default();
+        let entry = self.spawn_history.entry(proc.name.clone()).or_default();
         entry.push((proc.pid, proc.start_time));
         // Purge entries older than 120s
         entry.retain(|(_, start)| now_run_time.saturating_sub(*start) < 120);
@@ -529,11 +590,8 @@ impl SentinelPlugin {
         let mut alerts: Vec<SentinelAlert> = Vec::new();
 
         // Build parent PID map for Rule 5
-        let parent_map: HashMap<u32, &ProcessInfo> = snap
-            .processes
-            .iter()
-            .map(|p| (p.pid, p))
-            .collect();
+        let parent_map: HashMap<u32, &ProcessInfo> =
+            snap.processes.iter().map(|p| (p.pid, p)).collect();
 
         let now_run_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -585,15 +643,15 @@ impl SentinelPlugin {
                 "expected cpu,mem,disk (3 comma-separated values)".into(),
             ));
         }
-        let cpu = parts[0].parse::<f64>().map_err(|e| {
-            PluginError::Recoverable(format!("invalid cpu threshold: {e}"))
-        })?;
-        let mem = parts[1].parse::<f64>().map_err(|e| {
-            PluginError::Recoverable(format!("invalid mem threshold: {e}"))
-        })?;
-        let disk = parts[2].parse::<f64>().map_err(|e| {
-            PluginError::Recoverable(format!("invalid disk threshold: {e}"))
-        })?;
+        let cpu = parts[0]
+            .parse::<f64>()
+            .map_err(|e| PluginError::Recoverable(format!("invalid cpu threshold: {e}")))?;
+        let mem = parts[1]
+            .parse::<f64>()
+            .map_err(|e| PluginError::Recoverable(format!("invalid mem threshold: {e}")))?;
+        let disk = parts[2]
+            .parse::<f64>()
+            .map_err(|e| PluginError::Recoverable(format!("invalid disk threshold: {e}")))?;
         Ok((cpu, mem, disk))
     }
 }
@@ -614,7 +672,8 @@ impl Plugin for SentinelPlugin {
             id: "sentinel".to_string(),
             name: "Sentinel".to_string(),
             version: "0.1.0".to_string(),
-            description: "AI-aware system monitoring, management, and heuristic threat detection".to_string(),
+            description: "AI-aware system monitoring, management, and heuristic threat detection"
+                .to_string(),
             capabilities: vec![
                 PluginCapability::ReadSystemInfo,
                 PluginCapability::KillProcesses,
@@ -655,13 +714,21 @@ impl Plugin for SentinelPlugin {
                     .title(" Sentinel ")
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(Color::Rgb(accent[0], accent[1], accent[2])))
-                    .style(Style::default().bg(Color::Rgb(bg[0], bg[1], bg[2])).fg(Color::Rgb(fg[0], fg[1], fg[2])));
+                    .style(
+                        Style::default()
+                            .bg(Color::Rgb(bg[0], bg[1], bg[2]))
+                            .fg(Color::Rgb(fg[0], fg[1], fg[2])),
+                    );
                 let inner = block.inner(area);
                 f.render_widget(block, area);
 
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0)])
+                    .constraints([
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                        Constraint::Min(0),
+                    ])
                     .split(inner);
 
                 let status = Paragraph::new("Agent: monitoring for threats -- use MCP to interact")
@@ -689,18 +756,21 @@ impl Plugin for SentinelPlugin {
             "processes.search" => self.search_processes(ctx, params),
             "process.info" => self.process_info(ctx, params),
             "process.kill" => {
-                let pid = params.parse::<u32>().map_err(|_| {
-                    PluginError::Recoverable(format!("invalid pid: {params}"))
-                })?;
-                let ok = ctx.kill_process(pid)
+                let pid = params
+                    .parse::<u32>()
+                    .map_err(|_| PluginError::Recoverable(format!("invalid pid: {params}")))?;
+                let ok = ctx
+                    .kill_process(pid)
                     .map_err(|e| PluginError::Recoverable(e.to_string()))?;
                 Ok(serde_json::to_string(&serde_json::json!({
                     "killed": ok,
                     "pid": pid,
-                })).unwrap_or_default())
+                }))
+                .unwrap_or_default())
             }
             "process.alerts" => {
-                let alerts_json: Vec<serde_json::Value> = self.alerts.iter().map(Self::fmt_alert).collect();
+                let alerts_json: Vec<serde_json::Value> =
+                    self.alerts.iter().map(Self::fmt_alert).collect();
                 Ok(serde_json::to_string(&alerts_json).unwrap_or_default())
             }
             "threshold.set" => {
@@ -709,7 +779,8 @@ impl Plugin for SentinelPlugin {
                     .map_err(|e| PluginError::Recoverable(e.to_string()))?;
                 Ok(serde_json::to_string(&serde_json::json!({
                     "cpu": cpu, "mem": mem, "disk": disk, "set": true,
-                })).unwrap_or_default())
+                }))
+                .unwrap_or_default())
             }
             "threshold.get" => {
                 let alerts = ctx.state().alerts;
@@ -717,7 +788,8 @@ impl Plugin for SentinelPlugin {
                     "cpu": alerts.cpu_high,
                     "mem": alerts.mem_high,
                     "disk": alerts.disk_high,
-                })).unwrap_or_default())
+                }))
+                .unwrap_or_default())
             }
             "config.get" => {
                 let s = ctx.state();
@@ -726,7 +798,8 @@ impl Plugin for SentinelPlugin {
                     "layout": s.current_layout_name(),
                     "interval_ms": s.update_interval_ms,
                     "hostname": s.sys_info.hostname,
-                })).unwrap_or_default())
+                }))
+                .unwrap_or_default())
             }
             "config.set" => {
                 if let Some(val) = params.strip_prefix("interval_ms=") {
@@ -737,19 +810,24 @@ impl Plugin for SentinelPlugin {
                         .map_err(|e| PluginError::Recoverable(e.to_string()))?;
                     Ok(serde_json::to_string(&serde_json::json!({
                         "interval_ms": ms, "set": true,
-                    })).unwrap_or_default())
+                    }))
+                    .unwrap_or_default())
                 } else if let Some(name) = params.strip_prefix("theme=") {
-                    let ok = ctx.set_theme_by_name(name)
+                    let ok = ctx
+                        .set_theme_by_name(name)
                         .map_err(|e| PluginError::Recoverable(e.to_string()))?;
                     Ok(serde_json::to_string(&serde_json::json!({
                         "theme": name, "set": ok,
-                    })).unwrap_or_default())
+                    }))
+                    .unwrap_or_default())
                 } else if let Some(name) = params.strip_prefix("layout=") {
-                    let ok = ctx.set_layout_by_name(name)
+                    let ok = ctx
+                        .set_layout_by_name(name)
                         .map_err(|e| PluginError::Recoverable(e.to_string()))?;
                     Ok(serde_json::to_string(&serde_json::json!({
                         "layout": name, "set": ok,
-                    })).unwrap_or_default())
+                    }))
+                    .unwrap_or_default())
                 } else {
                     Err(PluginError::Recoverable(
                         "expected interval_ms=<ms>, theme=<name>, or layout=<name>".into(),
@@ -757,20 +835,38 @@ impl Plugin for SentinelPlugin {
                 }
             }
             "alerts.status" => {
-                let critical = self.alerts.iter().filter(|a| matches!(a.severity, Severity::Critical)).count();
-                let warning = self.alerts.iter().filter(|a| matches!(a.severity, Severity::Warning)).count();
-                let info_count = self.alerts.iter().filter(|a| matches!(a.severity, Severity::Info)).count();
-                let top: Vec<serde_json::Value> = self.alerts.iter().take(5).map(Self::fmt_alert).collect();
+                let critical = self
+                    .alerts
+                    .iter()
+                    .filter(|a| matches!(a.severity, Severity::Critical))
+                    .count();
+                let warning = self
+                    .alerts
+                    .iter()
+                    .filter(|a| matches!(a.severity, Severity::Warning))
+                    .count();
+                let info_count = self
+                    .alerts
+                    .iter()
+                    .filter(|a| matches!(a.severity, Severity::Info))
+                    .count();
+                let top: Vec<serde_json::Value> =
+                    self.alerts.iter().take(5).map(Self::fmt_alert).collect();
                 Ok(serde_json::to_string(&serde_json::json!({
                     "total": self.alerts.len(),
                     "critical": critical,
                     "warning": warning,
                     "info": info_count,
                     "alerts": top,
-                })).unwrap_or_default())
+                }))
+                .unwrap_or_default())
             }
             "plugin.status" => {
-                let critical = self.alerts.iter().filter(|a| matches!(a.severity, Severity::Critical)).count();
+                let critical = self
+                    .alerts
+                    .iter()
+                    .filter(|a| matches!(a.severity, Severity::Critical))
+                    .count();
                 Ok(serde_json::to_string(&serde_json::json!({
                     "enabled": self.enabled,
                     "ticks": self.tick_count,
@@ -778,7 +874,8 @@ impl Plugin for SentinelPlugin {
                     "last_result": self.last_action_result,
                     "active_alerts": self.alerts.len(),
                     "critical_alerts": critical,
-                })).unwrap_or_default())
+                }))
+                .unwrap_or_default())
             }
             _ => {
                 return Err(PluginError::UnknownAction(action.to_string()));

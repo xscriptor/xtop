@@ -74,9 +74,10 @@ impl TryFrom<LayoutAreaRaw> for LayoutArea {
             Some(SizeRaw::Num(n)) => LayoutConstraint::Length(n),
             Some(SizeRaw::Str(s)) if s == "*" => LayoutConstraint::Fill,
             Some(SizeRaw::Str(s)) if s.ends_with('%') => {
-                let pct = s.trim_end_matches('%').parse::<u16>().map_err(|_| {
-                    format!("invalid percentage: {s}")
-                })?;
+                let pct = s
+                    .trim_end_matches('%')
+                    .parse::<u16>()
+                    .map_err(|_| format!("invalid percentage: {s}"))?;
                 LayoutConstraint::Percentage(pct)
             }
             Some(SizeRaw::Str(s)) => {

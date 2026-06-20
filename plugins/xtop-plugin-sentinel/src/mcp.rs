@@ -41,16 +41,16 @@ pub fn run_server(state: &mut AppState) -> anyhow::Result<()> {
             continue;
         }
 
-        let parsed: serde_json::Value = serde_json::from_str(&line)
-            .map_err(|e| anyhow::anyhow!("invalid JSON-RPC: {e}"))?;
+        let parsed: serde_json::Value =
+            serde_json::from_str(&line).map_err(|e| anyhow::anyhow!("invalid JSON-RPC: {e}"))?;
 
         let id = parsed.get("id").cloned();
-        let method = parsed
-            .get("method")
-            .and_then(|m| m.as_str())
-            .unwrap_or("");
+        let method = parsed.get("method").and_then(|m| m.as_str()).unwrap_or("");
 
-        let params = parsed.get("params").cloned().unwrap_or(serde_json::Value::Null);
+        let params = parsed
+            .get("params")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
 
         let response = match method {
             "initialize" => handle_initialize(id, &params),
@@ -91,12 +91,18 @@ fn make_error(id: Option<serde_json::Value>, code: i32, message: String) -> serd
 // MCP: initialize
 // ---------------------------------------------------------------------------
 
-fn handle_initialize(id: Option<serde_json::Value>, _params: &serde_json::Value) -> serde_json::Value {
-    make_result(id, serde_json::json!({
-        "protocolVersion": PROTOCOL_VERSION,
-        "capabilities": { "tools": {} },
-        "serverInfo": { "name": SERVER_NAME, "version": SERVER_VERSION }
-    }))
+fn handle_initialize(
+    id: Option<serde_json::Value>,
+    _params: &serde_json::Value,
+) -> serde_json::Value {
+    make_result(
+        id,
+        serde_json::json!({
+            "protocolVersion": PROTOCOL_VERSION,
+            "capabilities": { "tools": {} },
+            "serverInfo": { "name": SERVER_NAME, "version": SERVER_VERSION }
+        }),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -104,110 +110,113 @@ fn handle_initialize(id: Option<serde_json::Value>, _params: &serde_json::Value)
 // ---------------------------------------------------------------------------
 
 fn handle_tools_list(id: Option<serde_json::Value>) -> serde_json::Value {
-    make_result(id, serde_json::json!({
-        "tools": [
-            {
-                "name": "system_summary",
-                "description": "Get a high-level system health summary (CPU, memory, disks, network, uptime, hostname)",
-                "inputSchema": { "type": "object", "properties": {} }
-            },
-            {
-                "name": "processes_top",
-                "description": "Get top N processes by CPU usage, with optional regex filter",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "count": { "type": "integer", "description": "Number of processes (default 10)", "default": 10 },
-                        "filter": { "type": "string", "description": "Optional regex to filter by name or command" }
+    make_result(
+        id,
+        serde_json::json!({
+            "tools": [
+                {
+                    "name": "system_summary",
+                    "description": "Get a high-level system health summary (CPU, memory, disks, network, uptime, hostname)",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "processes_top",
+                    "description": "Get top N processes by CPU usage, with optional regex filter",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "count": { "type": "integer", "description": "Number of processes (default 10)", "default": 10 },
+                            "filter": { "type": "string", "description": "Optional regex to filter by name or command" }
+                        }
                     }
-                }
-            },
-            {
-                "name": "processes_search",
-                "description": "Search processes using regex. Fields: name, cmd, user, state, exe, cwd",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "pattern": { "type": "string", "description": "Regex pattern" },
-                        "fields": { "type": "string", "description": "Fields to search: name,cmd,user,state,exe,cwd (default: name)" }
-                    },
-                    "required": ["pattern"]
-                }
-            },
-            {
-                "name": "process_info",
-                "description": "Get detailed info about a process by PID (includes exe, ppid, threads, cwd)",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "pid": { "type": "integer", "description": "Process ID" }
-                    },
-                    "required": ["pid"]
-                }
-            },
-            {
-                "name": "process_kill",
-                "description": "Terminate a process by PID",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "pid": { "type": "integer", "description": "Process ID to kill" }
-                    },
-                    "required": ["pid"]
-                }
-            },
-            {
-                "name": "threshold_set",
-                "description": "Set alert thresholds for CPU, memory, and disk (percentages)",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "cpu": { "type": "number", "description": "CPU threshold" },
-                        "mem": { "type": "number", "description": "Memory threshold" },
-                        "disk": { "type": "number", "description": "Disk threshold" }
-                    },
-                    "required": ["cpu", "mem", "disk"]
-                }
-            },
-            {
-                "name": "threshold_get",
-                "description": "Get current alert threshold values",
-                "inputSchema": { "type": "object", "properties": {} }
-            },
-            {
-                "name": "config_get",
-                "description": "Get current xtop configuration",
-                "inputSchema": { "type": "object", "properties": {} }
-            },
-            {
-                "name": "config_set",
-                "description": "Update configuration: interval_ms, theme, or layout",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "interval_ms": { "type": "integer", "description": "Update interval in milliseconds" },
-                        "theme": { "type": "string", "description": "Theme name" },
-                        "layout": { "type": "string", "description": "Layout name" }
+                },
+                {
+                    "name": "processes_search",
+                    "description": "Search processes using regex. Fields: name, cmd, user, state, exe, cwd",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "pattern": { "type": "string", "description": "Regex pattern" },
+                            "fields": { "type": "string", "description": "Fields to search: name,cmd,user,state,exe,cwd (default: name)" }
+                        },
+                        "required": ["pattern"]
                     }
+                },
+                {
+                    "name": "process_info",
+                    "description": "Get detailed info about a process by PID (includes exe, ppid, threads, cwd)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "pid": { "type": "integer", "description": "Process ID" }
+                        },
+                        "required": ["pid"]
+                    }
+                },
+                {
+                    "name": "process_kill",
+                    "description": "Terminate a process by PID",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "pid": { "type": "integer", "description": "Process ID to kill" }
+                        },
+                        "required": ["pid"]
+                    }
+                },
+                {
+                    "name": "threshold_set",
+                    "description": "Set alert thresholds for CPU, memory, and disk (percentages)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "cpu": { "type": "number", "description": "CPU threshold" },
+                            "mem": { "type": "number", "description": "Memory threshold" },
+                            "disk": { "type": "number", "description": "Disk threshold" }
+                        },
+                        "required": ["cpu", "mem", "disk"]
+                    }
+                },
+                {
+                    "name": "threshold_get",
+                    "description": "Get current alert threshold values",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "config_get",
+                    "description": "Get current xtop configuration",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "config_set",
+                    "description": "Update configuration: interval_ms, theme, or layout",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "interval_ms": { "type": "integer", "description": "Update interval in milliseconds" },
+                            "theme": { "type": "string", "description": "Theme name" },
+                            "layout": { "type": "string", "description": "Layout name" }
+                        }
+                    }
+                },
+                {
+                    "name": "process_alerts",
+                    "description": "Get all heuristic alerts as a JSON array (suspicious_exe_path, masquerading, known_threat, pipe_download, orphan, privilege_escalation, browser_child, thread_anomaly, fd_anomaly, spawn_storm)",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "alerts_status",
+                    "description": "Get alert summary with counts by severity (critical, warning, info)",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "plugin_status",
+                    "description": "Get Sentinel plugin internal status",
+                    "inputSchema": { "type": "object", "properties": {} }
                 }
-            },
-            {
-                "name": "process_alerts",
-                "description": "Get all heuristic alerts as a JSON array (suspicious_exe_path, masquerading, known_threat, pipe_download, orphan, privilege_escalation, browser_child, thread_anomaly, fd_anomaly, spawn_storm)",
-                "inputSchema": { "type": "object", "properties": {} }
-            },
-            {
-                "name": "alerts_status",
-                "description": "Get alert summary with counts by severity (critical, warning, info)",
-                "inputSchema": { "type": "object", "properties": {} }
-            },
-            {
-                "name": "plugin_status",
-                "description": "Get Sentinel plugin internal status",
-                "inputSchema": { "type": "object", "properties": {} }
-            }
-        ]
-    }))
+            ]
+        }),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +229,10 @@ fn handle_tools_call(
     state: &mut AppState,
 ) -> serde_json::Value {
     let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
-    let args = params.get("arguments").cloned().unwrap_or(serde_json::Value::Null);
+    let args = params
+        .get("arguments")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
 
     // Map MCP tool name -> Sentinel action + params string
     let (action, params_str): (&str, String) = match name {
@@ -304,14 +316,16 @@ fn handle_tools_call(
     state.on_tick();
 
     // Execute via Sentinel plugin
-    let result_str = state.with_plugin_manager_mut(|mgr, this| {
-        mgr.execute(this, "sentinel", action, &params_str)
-    });
+    let result_str = state
+        .with_plugin_manager_mut(|mgr, this| mgr.execute(this, "sentinel", action, &params_str));
 
     match result_str {
-        Ok(json_str) => make_result(id, serde_json::json!({
-            "content": [{"type": "text", "text": json_str}]
-        })),
+        Ok(json_str) => make_result(
+            id,
+            serde_json::json!({
+                "content": [{"type": "text", "text": json_str}]
+            }),
+        ),
         Err(e) => make_error(id, -32000, e.to_string()),
     }
 }

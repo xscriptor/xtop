@@ -30,7 +30,11 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let text: Vec<Line> = if wide {
         vec![Line::from(format!(
             "{} | {} | {} | Uptime: {} | Load: {:.2} {:.2} {:.2}{}",
-            if host.is_empty() { "xtop".to_string() } else { host.clone() },
+            if host.is_empty() {
+                "xtop".to_string()
+            } else {
+                host.clone()
+            },
             state.current_theme.name,
             mode_str,
             format_uptime(uptime),
@@ -46,11 +50,7 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
             format!("{} | {}", host, mode_str)
         };
         vec![
-            Line::from(format!(
-                "{} | Uptime: {}",
-                host_part,
-                format_uptime(uptime),
-            )),
+            Line::from(format!("{} | Uptime: {}", host_part, format_uptime(uptime),)),
             Line::from(format!(
                 "Load: {:.2} {:.2} {:.2}{}",
                 load.one, load.five, load.fifteen, extras,

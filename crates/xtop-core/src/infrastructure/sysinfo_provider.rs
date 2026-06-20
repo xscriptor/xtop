@@ -191,7 +191,11 @@ impl SystemDataProvider for SysinfoProvider {
             .iter()
             .map(|(pid, p)| {
                 let start = p.start_time();
-                let run = if start > 0 { now.saturating_sub(start) } else { 0 };
+                let run = if start > 0 {
+                    now.saturating_sub(start)
+                } else {
+                    0
+                };
                 ProcessInfo {
                     pid: pid.as_u32(),
                     name: p.name().to_string_lossy().to_string(),
@@ -199,12 +203,20 @@ impl SystemDataProvider for SysinfoProvider {
                     memory: p.memory(),
                     user_id: p.user_id().map(|u| u.to_string()),
                     state: format!("{:?}", p.status()),
-                    cmd: p.cmd().first().map(|c| c.to_string_lossy().to_string()).unwrap_or_default(),
+                    cmd: p
+                        .cmd()
+                        .first()
+                        .map(|c| c.to_string_lossy().to_string())
+                        .unwrap_or_default(),
 
                     // P0
                     exe_path: p.exe().map(|e| e.to_string_lossy().to_string()),
                     parent_pid: p.parent().map(|ppid| ppid.as_u32()),
-                    cmd_full: p.cmd().iter().map(|c| c.to_string_lossy().to_string()).collect(),
+                    cmd_full: p
+                        .cmd()
+                        .iter()
+                        .map(|c| c.to_string_lossy().to_string())
+                        .collect(),
 
                     // P1
                     start_time: start,
@@ -219,7 +231,11 @@ impl SystemDataProvider for SysinfoProvider {
                     open_files_limit: p.open_files_limit().unwrap_or(0) as u64,
                     disk_total_read_bytes: p.disk_usage().total_read_bytes,
                     disk_total_write_bytes: p.disk_usage().total_written_bytes,
-                    environ: p.environ().iter().map(|e| e.to_string_lossy().to_string()).collect(),
+                    environ: p
+                        .environ()
+                        .iter()
+                        .map(|e| e.to_string_lossy().to_string())
+                        .collect(),
                     session_id: p.session_id().map(|s| s.as_u32()),
                 }
             })
@@ -352,9 +368,11 @@ impl SysinfoProvider {
 
 #[cfg(target_os = "linux")]
 fn read_cpu_governor(_cpu_id: usize) -> String {
-    std::fs::read_to_string(format!("/sys/devices/system/cpu/cpu{_cpu_id}/cpufreq/scaling_governor"))
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default()
+    std::fs::read_to_string(format!(
+        "/sys/devices/system/cpu/cpu{_cpu_id}/cpufreq/scaling_governor"
+    ))
+    .map(|s| s.trim().to_string())
+    .unwrap_or_default()
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -400,7 +418,11 @@ fn read_interface_ips() -> HashMap<String, Vec<String>> {
                             let start = i * 4;
                             let group = &addr_hex[start..start + 4];
                             let trimmed = group.trim_start_matches('0');
-                            let val = u16::from_str_radix(if trimmed.is_empty() { "0" } else { trimmed }, 16).unwrap_or(0);
+                            let val = u16::from_str_radix(
+                                if trimmed.is_empty() { "0" } else { trimmed },
+                                16,
+                            )
+                            .unwrap_or(0);
                             format!("{:x}", val)
                         })
                         .collect::<Vec<_>>()
@@ -469,11 +491,14 @@ fn read_batteries() -> Vec<BatteryInfo> {
 
             let (time_to_full, time_to_empty) = if power_now != 0 && power_now.abs() > 0 {
                 if state == "Charging" {
-                    let remaining = charge_full.unwrap_or(0).saturating_sub(charge_now.unwrap_or(0));
+                    let remaining = charge_full
+                        .unwrap_or(0)
+                        .saturating_sub(charge_now.unwrap_or(0));
                     let secs = (remaining as f64 / power_now.abs() as f64 * 3600.0) as u64;
                     (Some(secs), None)
                 } else if state == "Discharging" {
-                    let secs = (charge_now.unwrap_or(0) as f64 / power_now.abs() as f64 * 3600.0) as u64;
+                    let secs =
+                        (charge_now.unwrap_or(0) as f64 / power_now.abs() as f64 * 3600.0) as u64;
                     (None, Some(secs))
                 } else {
                     (None, None)
@@ -544,13 +569,16 @@ fn read_gpu_info() -> Vec<GpuInfo> {
                 if fname.starts_with("card") && !fname.contains('-') {
                     let base = entry.path();
                     let dev = base.join("device");
-                    let gpu_name = std::fs::read_to_string(dev.join("product_name")).ok()
+                    let gpu_name = std::fs::read_to_string(dev.join("product_name"))
+                        .ok()
                         .map(|s| s.trim().to_string())
                         .unwrap_or_else(|| fname.clone());
-                    let mem_total = std::fs::read_to_string(dev.join("mem_info_vram_total")).ok()
+                    let mem_total = std::fs::read_to_string(dev.join("mem_info_vram_total"))
+                        .ok()
                         .and_then(|s| s.trim().parse::<u64>().ok())
                         .unwrap_or(0);
-                    let mem_used = std::fs::read_to_string(dev.join("mem_info_vram_used")).ok()
+                    let mem_used = std::fs::read_to_string(dev.join("mem_info_vram_used"))
+                        .ok()
                         .and_then(|s| s.trim().parse::<u64>().ok())
                         .unwrap_or(0);
                     let temp = find_hwmon_temp(&base.join("device"), "gpu").unwrap_or(0.0);

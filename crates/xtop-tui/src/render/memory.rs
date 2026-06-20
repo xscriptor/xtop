@@ -12,7 +12,11 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let snap = state.snapshot();
 
     let mem_alert = snap.memory.percent > state.alerts.mem_high;
-    let mem_color_idx = if mem_alert { 1 } else { gauge_gradient(snap.memory.percent, state.alerts.mem_high) };
+    let mem_color_idx = if mem_alert {
+        1
+    } else {
+        gauge_gradient(snap.memory.percent, state.alerts.mem_high)
+    };
 
     let mut title = "Memory".to_string();
     if mem_alert {
@@ -127,10 +131,10 @@ fn render_chart(f: &mut Frame, state: &AppState, area: Rect, _bg: Color) {
                 .bounds([x_min, x_max])
                 .labels(vec![Span::raw("")]),
         )
-        .y_axis(
-            Axis::default()
-                .bounds([0.0, 100.0])
-                .labels(vec![Span::raw("0%"), Span::raw("50%"), Span::raw("100%")]),
-        );
+        .y_axis(Axis::default().bounds([0.0, 100.0]).labels(vec![
+            Span::raw("0%"),
+            Span::raw("50%"),
+            Span::raw("100%"),
+        ]));
     f.render_widget(chart, area);
 }

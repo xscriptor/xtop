@@ -1,8 +1,8 @@
 use crate::application::history::MetricsHistory;
 use crate::application::plugin_manager::PluginManager;
 use crate::domain::keybinding::{Action, Keybindings};
-use crate::domain::metrics::SystemInfo;
 use crate::domain::layout::LayoutDef;
+use crate::domain::metrics::SystemInfo;
 use crate::domain::metrics::SystemSnapshot;
 use crate::domain::plugin::WidgetRegistration;
 use crate::domain::system_info::SystemDataProvider;

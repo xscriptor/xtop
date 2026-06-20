@@ -73,7 +73,12 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
                         .bg(bg),
                 )
                 .percent((d.write_speed / max_speed * 100.0) as u16)
-                .label(format!("     W: {}/s  Tot R: {}  Tot W: {}", write_speed, format_bytes(d.read_bytes), format_bytes(d.write_bytes)));
+                .label(format!(
+                    "     W: {}/s  Tot R: {}  Tot W: {}",
+                    write_speed,
+                    format_bytes(d.read_bytes),
+                    format_bytes(d.write_bytes)
+                ));
             f.render_widget(write_gauge, sub[1]);
         }
     }

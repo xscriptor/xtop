@@ -55,31 +55,19 @@ impl SystemDataProvider for CompositeProvider {
     }
 
     fn disk_io(&self) -> Vec<DiskIOInfo> {
-        self.first_non_empty(
-            || self.primary.disk_io(),
-            |e| e.disk_io(),
-        )
+        self.first_non_empty(|| self.primary.disk_io(), |e| e.disk_io())
     }
 
     fn batteries(&self) -> Vec<BatteryInfo> {
-        self.first_non_empty(
-            || self.primary.batteries(),
-            |e| e.batteries(),
-        )
+        self.first_non_empty(|| self.primary.batteries(), |e| e.batteries())
     }
 
     fn gpu_info(&self) -> Vec<GpuInfo> {
-        self.first_non_empty(
-            || self.primary.gpu_info(),
-            |e| e.gpu_info(),
-        )
+        self.first_non_empty(|| self.primary.gpu_info(), |e| e.gpu_info())
     }
 
     fn docker_info(&self) -> Vec<DockerInfo> {
-        self.first_non_empty(
-            || self.primary.docker_info(),
-            |e| e.docker_info(),
-        )
+        self.first_non_empty(|| self.primary.docker_info(), |e| e.docker_info())
     }
 
     fn system_info(&self) -> SystemInfo {

@@ -4,7 +4,7 @@
 
 ![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![CI](https://img.shields.io/github/actions/workflow/status/xscriptor/xtop/ci.yml?branch=main)
+![CI](https://img.shields.io/github/actions/workflow/status/xtop-cli/xtop/ci.yml?branch=main)
 ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)
 ![ratatui](https://img.shields.io/badge/built%20with-ratatui-red)
 
@@ -69,15 +69,15 @@ A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratat
 
 <h3>macOS / Linux</h3>
 
-<pre><code>curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash</code></pre>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash</code></pre>
 
 <h3>Windows (PowerShell)</h3>
 
-<pre><code>irm https://raw.githubusercontent.com/xscriptor/xtop/main/install.ps1 | iex</code></pre>
+<pre><code>irm https://raw.githubusercontent.com/xtop-cli/xtop/main/install.ps1 | iex</code></pre>
 
 <h3>Build from Source</h3>
 
-<pre><code>git clone https://github.com/xscriptor/xtop.git
+<pre><code>git clone https://github.com/xtop-cli/xtop.git
 cd xtop
 cargo run --release</code></pre>
 

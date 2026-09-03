@@ -6,7 +6,7 @@
 set -euo pipefail
 
 APP_NAME="xtop"
-REPO_URL="https://github.com/xscriptor/xtop.git"
+REPO_URL="https://github.com/xtop-cli/xtop.git"
 INSTALL_DIR="/usr/local/bin"
 VERSION="1.0.0"
 

@@ -57,4 +57,29 @@ It is synced automatically with GitHub Issues.
 - [ ] Create xp package (#32)
 - [ ] Add to X Repositories (#33)
 
+## Phase 8: Kernel Refactor <!-- phase:refactor -->
+
+Baseline done: single-crate kernel (src/ by areas: config, theme, layout,
+state, plugins, providers, ui, commands); plugin and extension hosts over
+the api contracts; samurai and the mcp extension live in their own repos.
+Only pending refactor work is listed here (git logistics are handled
+outside this roadmap).
+
+### R2 - Code quality pass
+
+- [ ] Module doc comments audit across src/ (#40)
+- [ ] cfg(target_os) only inside platform/ trees (#41)
+- [ ] Wildcard re-export and pub hygiene review (#42)
+- [ ] Split commands/plugins.rs into list/install/scaffold modules (#43)
+- [ ] key_event_to_str into a shared input module if reused elsewhere (#44)
+- [ ] ui/share/error.rs only when real UI error handling appears (no empty
+      modules) (#45)
+- [ ] Widgets subdivide internally when they outgrow one module (#46)
+
+### R3 - Structural audit tooling
+
+- [ ] scripts/audit.sh with failing thresholds: LOC per area, files above
+      200 lines, cfg outside platform (must be 0), module dependency graph
+      and cycles, unused pub items, TODO counts (#47)
+
 

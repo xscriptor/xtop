@@ -21,11 +21,11 @@
 
 <h3>Using curl</h3>
 
-<pre><code>curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash</code></pre>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash</code></pre>
 
 <h3>Using wget</h3>
 
-<pre><code>wget -qO- https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash</code></pre>
+<pre><code>wget -qO- https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash</code></pre>
 
 <hr>
 
@@ -33,7 +33,7 @@
 
 <p>Requires <a href="https://rustup.rs/">Rust (Cargo)</a> to be installed. Run in PowerShell:</p>
 
-<pre><code>irm https://raw.githubusercontent.com/xscriptor/xtop/main/install.ps1 | iex</code></pre>
+<pre><code>irm https://raw.githubusercontent.com/xtop-cli/xtop/main/install.ps1 | iex</code></pre>
 
 <hr>
 
@@ -67,7 +67,7 @@
 <ol>
   <li>
     <p>Clone the repository:</p>
-    <pre><code>git clone https://github.com/xscriptor/xtop.git
+    <pre><code>git clone https://github.com/xtop-cli/xtop.git
 cd xtop</code></pre>
   </li>
   <li>
@@ -82,11 +82,11 @@ cd xtop</code></pre>
 
 <h3>macOS / Linux</h3>
 
-<pre><code>curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash -s -- --uninstall</code></pre>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash -s -- --uninstall</code></pre>
 
 <h3>Windows</h3>
 
-<pre><code>irm https://raw.githubusercontent.com/xscriptor/xtop/main/uninstall.ps1 | iex</code></pre>
+<pre><code>irm https://raw.githubusercontent.com/xtop-cli/xtop/main/uninstall.ps1 | iex</code></pre>
 
 <hr>
 

@@ -8,7 +8,7 @@
 
 <p>Or with a specific set of plugins:</p>
 
-<pre><code>cargo build --release --features plugin-sentinel</code></pre>
+<pre><code>cargo build --release --features plugin-samurai</code></pre>
 
 <hr>
 
@@ -122,7 +122,7 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
 
 <pre><code>fn widget(&self) -> Option&lt;WidgetRegistration&gt; {
     Some(WidgetRegistration {
-        name: "sentinel".to_string(),
+        name: "samurai".to_string(),
         render: Arc::new(|f, state, area| {
             // Draw using ratatui
         }),
@@ -137,7 +137,7 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
         "direction": "vertical",
         "areas": [
             { "widget": "header", "size": 3 },
-            { "widget": "sentinel", "size": "30%" },
+            { "widget": "samurai", "size": "30%" },
             { "widget": "processes", "size": "*" }
         ]
     }
@@ -160,7 +160,7 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
     </tr>
     <tr>
       <td><code>xtop plugin install &lt;name&gt;</code></td>
-      <td>Install a plugin from <code>github.com/xscriptor/xtop/plugins/</code></td>
+      <td>Install a plugin from <code>github.com/xtop-cli/xtop/plugins/</code></td>
     </tr>
     <tr>
       <td><code>xtop plugin install &lt;url&gt;</code></td>
@@ -175,11 +175,11 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
 
 <h3 id="install-flow">Install Flow</h3>
 
-<p>When running <code>xtop plugin install sentinel</code>:</p>
+<p>When running <code>xtop plugin install samurai</code>:</p>
 
 <ol>
-  <li>Clones <code>github.com/xscriptor/xtop.git</code> (shallow, sparse)</li>
-  <li>Looks for <code>plugins/xtop-plugin-sentinel/</code> or <code>plugins/sentinel/</code> in the clone</li>
+  <li>Clones <code>github.com/xtop-cli/xtop.git</code> (shallow, sparse)</li>
+  <li>Looks for <code>plugins/xtop-plugin-samurai/</code> or <code>plugins/samurai/</code> in the clone</li>
   <li>Copies to local <code>plugins/</code> directory</li>
   <li>Adds entry to <code>[workspace].members</code> in root <code>Cargo.toml</code></li>
   <li>Adds optional dependency + feature flag in <code>crates/xtop-cli/Cargo.toml</code></li>
@@ -194,21 +194,21 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
   <li>Add it to the <code>default</code> list in <code>crates/xtop-cli/Cargo.toml</code> to enable permanently</li>
 </ul>
 
-<pre><code># Build xtop with sentinel plugin enabled
-cargo build --release --features plugin-sentinel
+<pre><code># Build xtop with samurai plugin enabled
+cargo build --release --features plugin-samurai
 
-# Build xtop with sentinel + another plugin
-cargo build --release --features "plugin-sentinel,plugin-mything"</code></pre>
+# Build xtop with samurai + another plugin
+cargo build --release --features "plugin-samurai,plugin-mything"</code></pre>
 
 <hr>
 
 <h2 id="mcp-server">MCP Server for AI Agents</h2>
 
-<p>When the <code>plugin-sentinel</code> feature is enabled, xtop can run an MCP (Model Context Protocol) server on stdio:</p>
+<p>When the <code>plugin-samurai</code> feature is enabled, xtop can run an MCP (Model Context Protocol) server on stdio:</p>
 
 <pre><code>xtop mcp</code></pre>
 
-<p>This exposes Sentinel's commands as MCP tools that any AI assistant can call.
+<p>This exposes Samurai's commands as MCP tools that any AI assistant can call.
 Compatible clients include Claude Desktop, Cline, Cursor, and Continue.dev.</p>
 
 <h3>Claude Desktop configuration</h3>

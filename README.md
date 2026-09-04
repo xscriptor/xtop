@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange)
+![Rust](https://img.shields.io/badge/Rust-1.87%2B-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![CI](https://img.shields.io/github/actions/workflow/status/xtop-cli/xtop/ci.yml?branch=main)
 ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)
@@ -38,9 +38,9 @@ A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratat
   <li>RAM and Swap monitoring with historical chart</li>
   <li>Network RX/TX tracking per interface</li>
   <li>Storage and Disk I/O visualization</li>
-  <li>Process list with live search</li>
-  <li>GPU and Battery monitoring (stub, ready for supported hardware)</li>
-  <li>13 color themes with custom theme support via JSONC</li>
+  <li>Process list with live search and CPU/Memory/PID/Name sorting</li>
+  <li>GPU and Battery monitoring (Linux: real probes; macOS/Windows: stubs)</li>
+  <li>12 color themes with custom theme support via JSONC</li>
   <li>7 built-in layouts with custom layout support via JSONC</li>
   <li>Full-screen mode for any widget</li>
   <li>Configurable alert thresholds</li>
@@ -67,13 +67,19 @@ A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratat
 
 <h2 id="quick-install">Quick Install</h2>
 
-<h3>macOS / Linux</h3>
+<h3>Linux</h3>
 
 <pre><code>curl -fsSL https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash</code></pre>
 
 <h3>Windows (PowerShell)</h3>
 
 <pre><code>irm https://raw.githubusercontent.com/xtop-cli/xtop/main/install.ps1 | iex</code></pre>
+
+<h3>macOS and other platforms</h3>
+
+<p>Build from source (see below). The <code>install.sh</code> script detects Linux
+package managers; macOS users need a working Rust toolchain and run the
+build-from-source steps.</p>
 
 <h3>Build from Source</h3>
 
@@ -115,6 +121,9 @@ cargo run --release</code></pre>
   <li><a href="docs/usage.md">Usage</a> -- keybindings, modules, help overlay</li>
   <li><a href="docs/configuration.md">Configuration</a> -- config file and settings reference</li>
   <li><a href="docs/customization.md">Customization</a> -- custom themes and layouts</li>
+  <li><a href="docs/colors.md">Colors</a> -- palette reference for the 12 shipped themes</li>
+  <li><a href="docs/plugin.md">Plugins</a> -- plugin architecture and authoring</li>
+  <li><a href="docs/multi-repo.md">Multi-repo architecture</a> -- ecosystem RFC and layout</li>
   <li><a href="ROADMAP.md">Roadmap</a></li>
   <li><a href="CHANGELOG.md">Changelog</a></li>
   <li><a id="contributing" href="CONTRIBUTING.md">Contributing</a></li>
@@ -126,14 +135,8 @@ cargo run --release</code></pre>
 <div id="x" align="center">
 <h2>X</h2>
 
-<a href="https://dev.xscriptor.com">
-  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/verified-filled.svg" width="24" alt="X Web" />
-</a>
+<a href="https://www.xscriptor.io">Dev</a>
  & 
-<a href="https://github.com/xscriptor">
-  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/github.svg" width="24" alt="X Github Profile" />
-</a>
+<a href="https://github.com/xscriptor">Github Profile</a>
  & 
-<a href="https://www.xscriptor.com">
-  <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/quotes.svg" width="24" alt="Xscriptor web" />
-</a>
+<a href="https://www.xscriptor.com">Xscriptor</a>

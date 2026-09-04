@@ -24,11 +24,7 @@ impl HostState for AppState {
     }
 
     fn alerts(&self) -> AlertThresholds {
-        AlertThresholds {
-            cpu_high: self.alerts.cpu_high,
-            mem_high: self.alerts.mem_high,
-            disk_high: self.alerts.disk_high,
-        }
+        self.alerts.clone()
     }
 
     fn config(&self) -> RuntimeConfig {

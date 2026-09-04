@@ -4,16 +4,16 @@
 //! always reflected here.
 
 use crate::state::AppState;
-use crate::ui::share::to_color;
 use ratatui::prelude::*;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
+use xtop_widget_api::glyph::to_color;
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
-    let fg = to_color(state.current_theme.fg());
-    let bg = to_color(state.current_theme.bg());
-    let accent = to_color(&state.current_theme.palette[6]);
+    let fg = to_color(*state.current_theme.fg());
+    let bg = to_color(*state.current_theme.bg());
+    let accent = to_color(state.current_theme.palette[6]);
     let kb = &state.keybindings;
 
     let mut text = vec![

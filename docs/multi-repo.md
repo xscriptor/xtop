@@ -1,108 +1,127 @@
 # Multi-repo architecture (xtop-cli org)
 
-> Estado: propuesta inicial. Este doc vive en el kernel pero describe todos los repos.
+> Status: **live** (2026-09-04). This document is the ecosystem architecture
+> RFC location: it describes how the xtop-cli organization is split into
+> repos, how the pieces depend on each other, and where the design is headed.
+> Detailed per-area docs live in each repo's `docs/` folder; the push order
+> and milestone state live in the root `ROADMAP.md` of the workspace.
 
-## Organización
+## Organization
 
-| Repo (xtop-cli) | Rol | Contenido |
+| Repo (xtop-cli) | Role | Content |
 |---|---|---|
-| `xtop` | **Kernel** — la app | monocrate `src/` por áreas (commands, config, plugins, providers, state, theme, ui). Nada más |
-| `api` | **Contratos** | workspace: `crates/plugin-api`, `widget-api`, `effect-api`, `extension-api` → crates publicados `xtop-plugin-api`, `xtop-widget-api`, `xtop-effect-api`, `xtop-extension-api` |
-| `layouts` | Layouts data-driven | repo `layouts`: crate `xtop-layout` (model + loader jsonc + modos, sin UI) + `layouts/default/` (7 built-ins) + `layouts/custom/` (comunidad, instalables) |
-| `plugins` | Implementaciones de plugins | workspace `plugins/xtop-plugin-*` (1er miembro: samurai) |
-| `effects` | Efectos visuales TUI | workspace `effects/xtop-effect-*` (+ `effects-lib` compartido) |
-| `extensions` | Hooks/add-ons del kernel | workspace `extensions/xtop-extension-*` |
-| `widgets` | Packs de widgets | repo `widgets`: pack base `xtop-widgets` + packs alternativos (`packs/xtop-widget-blocks`) + `custom/` comunidad, contra `xtop-widget-api`. El kernel solo conserva engine + estado |
+| `api` | **Contracts** | workspace with the four contract crates: `xtop-plugin-api` (data model, plugin/host traits, `AlertThresholds`, `PluginWidget`), `xtop-widget-api` (pack registration + glyph helpers), `xtop-extension-api` (extension host), `xtop-effect-api` (frame effects) |
+| `xtop` | **Kernel** | the app: single-crate binary, `src/` by areas (commands, config, plugins, providers, state, theme, ui). Consumes every other repo |
+| `widgets` | **Renderers** | packs of widget renderers against `xtop-widget-api`: base pack `xtop-widgets` + alternative packs (`packs/xtop-widget-blocks`) + `custom/` community |
+| `layouts` | **Arrangement** | `xtop-layout` crate: data-driven layout model + JSONC loader + layout modes, plus `layouts/default/` (7 built-ins) and `layouts/custom/` (community, installable) |
+| `plugins` | **Functionality** | plugin implementations against `xtop-plugin-api` (first member: `xtop-plugin-samurai`) |
+| `extensions` | **Kernel hooks** | server-style extensions against `xtop-extension-api` (`xtop-extension-mcp`) |
+| `effects` | **Animation** | frame effects against `xtop-effect-api` (`xtop-effect-fade`: 500 ms fade-in from black) |
 
-Layout local de desarrollo (repos hermanos, como hoy):
+Local development layout (sibling checkouts in one folder, as in this
+workspace):
 
 ```
-/home/x/xtop-cli/xtop/
-  xtop/  api/  plugins/  effects/  extensions/
+/home/x/xtop-cli/
+  api/  xtop/  widgets/  layouts/  plugins/  extensions/  effects/
 ```
 
-## Principio: dependencias en árbol
+## Dependency principle: contracts in `api`, consumers point up
 
-Hoy el kernel define los traits de plugin y `xtop-plugin-samurai` depende de
-`xtop-core`. Eso impide separar repos: el kernel es a la vez host y contrato.
-
-Objetivo (espejo de `xfetch-cli`):
+Each consumer repo depends only on the contract crates in `api` — never on
+the kernel — so every repo compiles standalone:
 
 ```
                 ┌────────────┐
-                │    api     │  crates puros de contrato (sin dep del kernel)
+                │    api     │  pure contract crates (ratatui/serde only)
                 └─────┬──────┘
-         ┌────────────┼────────────────┐
-         ▼            ▼                ▼
-  ┌───────────┐ ┌─────────────┐ ┌──────────────┐
-  │  kernel   │ │  plugins/   │ │ effects/     │
-  │  xtop     │ │  effects/   │ │ extensions/  │
-  │  (host)   │ │  extensions │ │              │
-  └───────────┘ └─────────────┘ └──────────────┘
+          ┌───────────┼───────────────┬──────────────┐
+          ▼           ▼               ▼              ▼
+   ┌──────────┐ ┌───────────┐ ┌────────────┐ ┌──────────────┐
+   │  xtop    │ │ widgets/  │ │ layouts/   │ │ plugins/     │
+   │ (kernel) │ │ effects/  │ │ extensions │ │ (samurai)    │
+   └──────────┘ └───────────┘ └────────────┘ └──────────────┘
 ```
 
-- **api**: tipos puros + protocolo (manifest, capabilities, errores, snapshot,
-  provider trait, widget registration, frames de efecto, hooks de extensión).
-  Depende solo de `ratatui`/`serde`. Publicado a crates.io en su momento.
-- **kernel**: implementa el *host* (PluginManager, CompositeProvider, pipeline
-  de render, hooks) contra los tipos de api. Sin plugins sigue compilando:
-  la integración es opcional.
-- **plugins/effects/extensions**: consumen api únicamente → cada repo compila
-  standalone y nunca depende del kernel.
+- **`api`**: pure types + protocols (manifests, capabilities, errors,
+  snapshot model, provider/widget/extension/effect contracts). Depends only
+  on `ratatui`/`serde`. Not published to crates.io yet (see Roadmap §6
+  follow-ups).
+- **`xtop` kernel**: hosts the ecosystem — implements `HostState` /
+  `WidgetState` / `ExtensionHost` for its live state, runs `PluginManager`
+  and the composite provider, renders layouts by resolving widget names into
+  the packs, and drives effects (feature-gated). Builds fine without any
+  optional feature: `cargo build --no-default-features` is the pure core.
+- **`widgets` / `layouts` / `plugins` / `extensions` / `effects`**: consume
+  only `api` types; each repo compiles standalone and never depends on the
+  kernel.
 
-## Qué se mueve de xtop-core a api (Fase 1)
+## Integration modes
 
-Candidatos directos (tipo "contrato"):
-
-- `domain/plugin.rs` → `xtop-plugin-api`: `PluginCapability`, `PluginManifest`,
-  `PluginError`, `PluginContext` (vía un trait de host, no `AppState` directo),
-  `WidgetRegistration`, trait `Plugin`.
-- `domain/system_info.rs` (trait `SystemDataProvider`) + tipos de datos de
-  `domain/metrics.rs` (`SystemSnapshot`, `ProcessInfo`, `SystemInfo`) →
-  `xtop-plugin-api` o crate de datos compartido, porque providers/widgets
-  externos necesitan esos tipos sin importar el kernel.
-
-Se queda en `xtop-core`: sysinfo real, `AppState`, `PluginManager`,
-config/themes/layouts, keybindings, alerts. El kernel reexporta los tipos de
-api para no romper los callers internos durante la transición.
-
-Nota `PluginContext`: hoy expone `&mut AppState` (estado vivo). Para que el
-contrato sea externo, `PluginContext` debe moverse al host: api define un trait
-`HostContext`/`XtapContext` que el kernel implementa y el plugin consume.
-(La otra vía —estado vivo por valor— choca con el modelo runtime futuro.)
-
-## Formas de integración (modular opcional)
-
-| Nivel | Mecanismo | Uso |
+| Level | Mechanism | Use |
 |---|---|---|
-| Compile-time (hoy) | feature flag + dep opcional sobre api/plugins | Built-ins del kernel |
-| Dev-time | `xtop plugin install <name>` (clona, compila, registra) | Primeros pasos |
-| Runtime (futuro) | discovery de binarios `xtop-plugin-*` / `xtop-effect-*` / `xtop-extension-*` en dirs de config + env `XTOP_*_DEV_DIR` | Terceros, sin recompilar |
+| Compile-time (today) | Cargo git dependencies + optional feature flags | Every integration: samurai plugin, mcp extension, blocks pack, fade effect |
+| Dev-time | `xtop plugin install <name>` (clones, self-edits the kernel `Cargo.toml`, runs `cargo check`) | First steps with a plugin repo |
+| Runtime (future, RFC) | binary/ABI discovery of `xtop-plugin-*` / `xtop-effect-*` / `xtop-extension-*` in config dirs + `XTOP_*_DEV_DIR` | Third parties without recompiling — see the root ROADMAP §7 deferred list |
 
-El kernel nunca exige ningún repo externo: `cargo build --release
---no-default-features` = core puro.
+The kernel never requires any external repo at runtime: optional ecosystem
+pieces are Cargo features (`plugin-samurai`, `mcp-extension`,
+`widget-blocks`, `effects`); contract crates (the four `xtop-*-api` crates
+plus `xtop-widgets`, `xtop-layout`) are unconditional because the kernel's
+chrome and state views are written against them.
 
-## Fases
+## Development flow (temporary path deps)
 
-1. **F0 (hecha)**: org `xtop-cli`, repos creados (`xtop` movido con historial;
-   `api`, `plugins`, `effects`, `extensions` iniciados), clones locales.
-2. **F1**: api crates esqueleto; extraer tipos contrato de xtop-core; kernel
-   dependiendo de `../api` (path) y verde de nuevo.
-3. **F2**: mover samurai → `plugins/` (subtree split con historia); convertir
-   su dep a api (sin xtop-core); kernel: feature apunta al repo plugins
-   (path dev → git dep); actualizar URLs `xtop-cli/xtop` → `xtop-cli/*`
-   en help, docs, install.sh y CI; `plugin scaffold` apunta al nuevo repo.
-4. **F3**: effects: `effect-api` + runner en el TUI + primer efecto demo.
-5. **F4**: extensions: `extension-api` (hooks pre/post render, config, tema,
-   layout) + primer add-on demo.
-6. **F5**: publicar api a crates.io; deps registry versionadas + tags; CI por
-   repo; release del kernel.
+The ecosystem repos are edited before they are pushed. To compile a consumer
+against un-pushed sibling state, its `Cargo.toml` temporarily replaces the
+git dependency with a path dependency (`path = "../api/crates/plugin-api"`,
+`path = "../widgets"`, ...), or — when the consumer's own manifest must stay
+untouched — a temporary `[patch."https://github.com/xtop-cli/<repo>"]`
+section redirects the git sources to the sibling checkouts. All temporary
+overrides are removed before the owner pushes; final manifests carry the
+floating git deps shown above.
 
-## Deuda detectada al mover
+## Why the split exists
 
-- 9 archivos del kernel aún referencian `xtop-cli/xtop` (help, docs,
-  install.sh/ps1, PKGBUILD, README, CONTRIBUTING).
-- `cmd_plugin_install`/`cmd_plugin_list` asumen plugin dentro del repo kernel
-  (`plugins/` miembro del workspace) → deberán apuntar al repo `plugins`.
-- LICENSE del kernel dice "Copyright (c) 2025 Xscriptor" → decidir si pasa a
-  la org xtop-cli.
+The kernel was originally a workspace of kernel-owned crates
+(`xtop-core`/`xtop-tui`/`xtop-cli`), then a monocrate with plugins inside.
+Each customization axis grew into its own repo so that:
+
+- a contributor can ship a widget pack, layout, plugin, extension or effect
+  without touching the kernel code base;
+- every repo compiles against the api contracts alone (testable in
+  isolation, no kernel import);
+- the kernel stays a thin host: metrics model, layouts and widget renderers
+  all come from the ecosystem crates.
+
+Single-source rules that keep the split honest (see the root ROADMAP
+"decisions" section):
+
+- the metrics model and plugin protocol exist only in `xtop-plugin-api`;
+- widget registration and glyph/style mapping exist only in `xtop-widget-api`
+  (the plugin-side widget is `xtop_plugin_api::PluginWidget`);
+- ecosystem constants live at the producer (`xtop-plugin-samurai` exports
+  `PLUGIN_ID` and its 12 action names; `xtop-extension-mcp` builds its tool
+  table from them).
+
+## Phases
+
+1. **F0 (done)**: org `xtop-cli`, repos created, local clones in one folder.
+2. **F1 (done)**: `api` contract crates extracted from the kernel's domain
+   model; kernel + siblings consume them.
+3. **F2 (done)**: samurai moved to the `plugins` repo; MCP moved to
+   `extensions`; kernel features point at the sibling repos via git deps.
+4. **F3 (done)**: `effects` workspace with the fade effect; kernel wires it
+   behind the optional `effects` feature.
+5. **F4 (done)**: extension host contract + `xtop-extension-mcp` as the
+   first server-style extension.
+6. **F5 (pending)**: publish the api crates to crates.io; tag and pin git
+   deps; per-repo CI and kernel releases (see the root ROADMAP §6/§7).
+
+## Open RFC topics
+
+- Runtime dynamic discovery (ABI or directory-based loading) — explicitly
+  deferred in the root ROADMAP §7 until the compile-time feature model stops
+  being coherent.
+- Publishing: versioning scheme for the contract crates and the pinning
+  strategy of every consumer.

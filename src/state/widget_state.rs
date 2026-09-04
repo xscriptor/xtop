@@ -30,11 +30,7 @@ impl xtop_widget_api::WidgetState for AppState {
     }
 
     fn alerts(&self) -> xtop_plugin_api::AlertThresholds {
-        xtop_plugin_api::AlertThresholds {
-            cpu_high: self.alerts.cpu_high,
-            mem_high: self.alerts.mem_high,
-            disk_high: self.alerts.disk_high,
-        }
+        self.alerts.clone()
     }
 
     fn charset(&self, widget: &str) -> xtop_widget_api::ChartCharset {

@@ -3,22 +3,31 @@
 //! the engine; overlays (help/palette) are kernel-owned.
 
 use crate::state::{AppState, FullScreenWidget, InputMode};
-use crate::ui::layout::{render_layout, render_named, PluginWidgetFn};
+use crate::ui::layout::{render_layout, render_named};
 use crate::ui::overlay::{help, palette};
-use crate::ui::share::to_color;
 use ratatui::prelude::*;
 use ratatui::Frame;
 use std::collections::HashMap;
 use xtop_layout::{detect_effective_layout, EffectiveLayout};
+use xtop_plugin_api::PluginWidget;
+use xtop_widget_api::glyph::to_color;
 
 /// Build a plugin widget lookup map from AppState.
 ///
 /// Plugin renderers only see [`HostState`](xtop_plugin_api::HostState);
 /// they keep precedence over every pack.
-fn plugin_widgets(state: &AppState) -> HashMap<String, PluginWidgetFn> {
-    let mut map: HashMap<String, PluginWidgetFn> = HashMap::new();
+fn plugin_widgets(state: &AppState) -> HashMap<String, PluginWidget> {
+    let mut map: HashMap<String, PluginWidget> = HashMap::new();
     for reg in &state.plugin_widgets {
-        map.insert(reg.name.clone(), reg.render.clone());
+        // `PluginWidget` is not `Clone` by contract; the render closure
+        // (an `Arc`) is, so rebuild a lightweight copy per frame.
+        map.insert(
+            reg.name.clone(),
+            PluginWidget {
+                name: reg.name.clone(),
+                render: reg.render.clone(),
+            },
+        );
     }
     map
 }
@@ -60,15 +69,15 @@ pub fn render(f: &mut Frame, state: &AppState) {
 
 fn render_too_small(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::Paragraph;
-    let fg = to_color(state.current_theme.fg());
+    let fg = to_color(*state.current_theme.fg());
     let text = Paragraph::new("Terminal too small\nMinimum: 40x8").style(Style::default().fg(fg));
     f.render_widget(text, area);
 }
 
 fn render_search_overlay(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::{Block, Borders, Paragraph};
-    let fg = to_color(state.current_theme.fg());
-    let bg = to_color(state.current_theme.bg());
+    let fg = to_color(*state.current_theme.fg());
+    let bg = to_color(*state.current_theme.bg());
     let search_text = format!("/{}_", state.search_query);
     let overlay = Paragraph::new(search_text)
         .style(Style::default().fg(fg).bg(bg))
@@ -87,16 +96,13 @@ fn render_search_overlay(f: &mut Frame, state: &AppState, area: Rect) {
 }
 
 fn render_fullscreen(f: &mut Frame, state: &AppState, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(area);
+    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
     let pw = plugin_widgets(state);
     render_named(f, state, "header", chunks[0], &pw);
     let name = fullscreen_widget_name(state.full_screen_widget);
     if !render_named(f, state, name, chunks[1], &pw) {
         let text = format!("No widget registered for '{name}'");
-        let fg = to_color(state.current_theme.fg());
+        let fg = to_color(*state.current_theme.fg());
         let p = ratatui::widgets::Paragraph::new(text).style(Style::default().fg(fg));
         f.render_widget(p, chunks[1]);
     }
@@ -119,17 +125,15 @@ fn fullscreen_widget_name(w: FullScreenWidget) -> &'static str {
 fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::Gauge;
 
-    let bg = to_color(state.current_theme.bg());
+    let bg = to_color(*state.current_theme.bg());
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Length(2),
-            Constraint::Length(2),
-            Constraint::Min(0),
-        ])
-        .split(area);
+    let chunks = Layout::vertical([
+        Constraint::Length(3),
+        Constraint::Length(2),
+        Constraint::Length(2),
+        Constraint::Min(0),
+    ])
+    .split(area);
 
     let pw = plugin_widgets(state);
     render_named(f, state, "header", chunks[0], &pw);
@@ -148,7 +152,7 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     let cpu_gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(to_color(&state.current_theme.palette[1]))
+                .fg(to_color(state.current_theme.palette[1]))
                 .bg(bg),
         )
         .percent(cpu_pct as u16)
@@ -165,7 +169,7 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     let mem_gauge = Gauge::default()
         .gauge_style(
             Style::default()
-                .fg(to_color(&state.current_theme.palette[2]))
+                .fg(to_color(state.current_theme.palette[2]))
                 .bg(bg),
         )
         .percent(mem_pct)

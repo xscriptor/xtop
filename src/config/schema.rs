@@ -9,23 +9,10 @@ use std::collections::HashMap;
 use xtop_layout::LayoutMode;
 // Glyph style enums are shared ecosystem-wide (kernel + widget packs).
 pub use xtop_widget_api::{ChartCharset, WidgetBorders};
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AlertThresholds {
-    pub cpu_high: f64,
-    pub mem_high: f64,
-    pub disk_high: f64,
-}
-
-impl Default for AlertThresholds {
-    fn default() -> Self {
-        Self {
-            cpu_high: 90.0,
-            mem_high: 90.0,
-            disk_high: 90.0,
-        }
-    }
-}
+// Alert thresholds are contract data (DR-1): the plugin-api type is serde
+// compatible under the exact keys this config used before (`cpu_high`,
+// `mem_high`, `disk_high`), so the persisted JSON stays byte-compatible.
+pub use xtop_plugin_api::AlertThresholds;
 
 // ---------------------------------------------------------------------------
 // Widget glyph style
@@ -83,7 +70,18 @@ fn default_layout_mode() -> LayoutMode {
     LayoutMode::Dashboard
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Default alert thresholds (90/90/90), mirroring the pre-contract values.
+/// The contract type itself carries no `Default`: config-level defaults are a
+/// kernel concern and stay here, next to the persisted schema.
+pub fn default_alerts() -> AlertThresholds {
+    AlertThresholds {
+        cpu_high: 90.0,
+        mem_high: 90.0,
+        disk_high: 90.0,
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub theme: String,
     #[serde(default = "default_layout_mode")]
@@ -94,6 +92,7 @@ pub struct Config {
     pub layout_name: String,
     pub update_interval_ms: u64,
     pub history_points: usize,
+    #[serde(default = "default_alerts")]
     pub alerts: AlertThresholds,
     #[serde(default)]
     pub keybindings: Keybindings,
@@ -101,6 +100,11 @@ pub struct Config {
     /// the classic look.
     #[serde(default)]
     pub style: UiStyle,
+    /// Frame effect id (e.g. "fade"), consumed by the optional `effects`
+    /// feature. Absent or unknown values disable effects; builds without the
+    /// feature ignore this key entirely.
+    #[serde(default)]
+    pub effect: Option<String>,
 }
 
 impl Default for Config {
@@ -111,9 +115,10 @@ impl Default for Config {
             layout_name: String::new(),
             update_interval_ms: 1000,
             history_points: 100,
-            alerts: AlertThresholds::default(),
+            alerts: default_alerts(),
             keybindings: Keybindings::default(),
             style: UiStyle::default(),
+            effect: None,
         }
     }
 }

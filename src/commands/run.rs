@@ -55,6 +55,12 @@ pub fn run() -> anyhow::Result<()> {
     let cfg_dir = config_dir();
     let mut state = initialize_state(&cfg_dir)?;
 
+    // Frame effects read the persisted `effect` key once at startup (same
+    // config file `initialize_state` already loaded). The host is
+    // feature-agnostic: without `--features effects` it is an idle no-op.
+    let mut effect_host =
+        ui::effects::EffectHost::from_config(crate::config::load_config().effect.as_deref());
+
     // Sample once before the first frame so the UI never shows an empty
     // snapshot and every widget shares the same per-tick data.
     state.on_tick();
@@ -62,7 +68,12 @@ pub fn run() -> anyhow::Result<()> {
 
     loop {
         let tick_rate = Duration::from_millis(state.update_interval_ms.max(100));
-        terminal.draw(|f| ui::render(f, &state))?;
+        terminal.draw(|f| {
+            ui::render(f, &state);
+            // Effects transform the fully rendered frame (after layout,
+            // before flush); see the `xtop-effect-api` host contract.
+            effect_host.apply(f.buffer_mut());
+        })?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())

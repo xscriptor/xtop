@@ -6,7 +6,7 @@ use xtop_plugin_api::SystemDataProvider;
 ///
 /// The primary provider (usually `SysinfoProvider`) handles `refresh_all()` and `snapshot()`.
 /// Extra providers (from plugins) override specific methods like `gpu_info()`, `batteries()`,
-/// `docker_info()`, `disk_io()`, or `system_info()`.
+/// `disk_io()`, or `system_info()`.
 ///
 /// This allows plugins to inject data without modifying the primary provider.
 pub struct CompositeProvider {
@@ -65,10 +65,6 @@ impl SystemDataProvider for CompositeProvider {
 
     fn gpu_info(&self) -> Vec<GpuInfo> {
         self.first_non_empty(|| self.primary.gpu_info(), |e| e.gpu_info())
-    }
-
-    fn docker_info(&self) -> Vec<DockerInfo> {
-        self.first_non_empty(|| self.primary.docker_info(), |e| e.docker_info())
     }
 
     fn system_info(&self) -> SystemInfo {

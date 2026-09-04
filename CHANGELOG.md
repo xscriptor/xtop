@@ -1,5 +1,68 @@
 # Changelog
 
+## [0.3.0] - 2026-09-04
+
+### Ecosystem externalization (monocrate cycle complete)
+- The kernel is now a thin host over the externalized ecosystem. It
+  consumes the contract crates from `xtop-cli/api` (`xtop-plugin-api`,
+  `xtop-widget-api`, `xtop-extension-api`), the widget packs from
+  `xtop-cli/widgets`, layouts from `xtop-cli/layouts`, the samurai plugin
+  from `xtop-cli/plugins` and the MCP extension from `xtop-cli/extensions`
+  as floating git dependencies with optional feature flags.
+- Deleted the dead uncompiled `src/commands/plugins_dir_tmp/` leftover
+  from the pre-monocrate layout. (Path spelled in scripts/audit.sh as the
+  absence guard.)
+- `crate version 0.2.0 -> 0.3.0`; `rust-version = "1.87"` declared.
+
+### Contract consolidation
+- `config::AlertThresholds` removed: the persisted config now uses
+  `xtop_plugin_api::AlertThresholds` directly (identical JSON keys
+  `cpu_high`/`mem_high`/`disk_high`; defaults 90/90/90 constructed at the
+  config layer). Hand-marshalling bridge code deleted from
+  `plugins/host.rs` and `state/widget_state.rs`.
+- Plugin widget registrations use `xtop_plugin_api::PluginWidget`; the
+  duplicated `PluginWidgetFn` alias in `ui/layout/engine.rs` is gone.
+- Docker leftovers removed (`dockers: vec![]` assignment, `docker_info`
+  composite forwarding) — the api model no longer carries Docker data.
+- Plugin context reads are capability-gated and `Result`-typed upstream;
+  consumers adapted.
+
+### Themes
+- `miami` is now embedded and seeded like the other 11 themes (12 JSONC
+  theme files ship, all in `DEFAULT_THEMES`); seed version bumped to "2"
+  so existing installs receive the new template.
+- Theme docs/counts corrected everywhere (12 themes; `x` compiled in as
+  the startup fallback).
+- `theme::themes_dir()` routes through the platform-aware
+  `config::config_dir()`, so themes live next to `config.json` and layouts
+  on macOS/Windows too.
+
+### Dependency refresh
+- ratatui `0.29 -> 0.30.2` (`Layout::vertical`/`Layout::horizontal`
+  builder API); crossterm aligned with ratatui's backend (single
+  `crossterm 0.29` in the graph via `ratatui-crossterm`).
+
+### New features
+- Unknown widget names in the active layout produce a one-time stderr
+  warning per name (`xtop: layout '<layout>' references unknown widget
+  '<name>'`).
+- Optional `effects` feature (off by default) wires the built-in
+  `xtop-effect-fade` through the `effect` config key ("fade" activates the
+  500 ms fade-in; absent/unknown disables). Builds without the feature
+  carry zero extra dependencies.
+
+### Docs and release plumbing
+- `docs/` refreshed: configuration keys, plugin architecture (plugins as
+  separate crates, `plugin list|install|scaffold` real behavior, MCP
+  extension), multi-repo RFC status, feature/theme counts; `colors.md`
+  moved under `docs/`.
+- `install.sh` VERSION synced to the crate version; OpenSSL build-dep
+  claims removed (the crate has no openssl dependency); `install.ps1`
+  placeholder comment removed.
+- Kernel `ROADMAP.md` synced with the implemented state (phases 4-6 and
+  the R2/R3 refactor items); `scripts/audit.sh` extended with dead-dir and
+  theme-seed gates.
+
 ## [0.2.1] - 2026-06-18
 
 ### Config: Persistencia de Layouts Personalizados

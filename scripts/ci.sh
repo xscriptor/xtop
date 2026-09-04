@@ -45,7 +45,8 @@ test() {
 }
 
 no_default() {
-    echo "==> check core only (built without the samurai plugin and mcp)"
+    echo "==> check core only (no default features: samurai plugin, mcp"
+    echo "    extension, blocks pack and effects are all excluded)"
     cargo check --no-default-features
 }
 

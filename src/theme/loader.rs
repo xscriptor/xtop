@@ -24,7 +24,7 @@ fn default_theme() -> Theme {
     )
 }
 
-fn strip_jsonc_comments(input: &str) -> String {
+pub(crate) fn strip_jsonc_comments(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
     let chars: Vec<char> = input.chars().collect();
     let mut i = 0;
@@ -77,20 +77,13 @@ fn load_themes_from_dir(dir: &Path) -> Vec<Theme> {
     themes
 }
 
+/// Where user themes live: the platform-aware config dir (same tree as
+/// `config.json` and the layouts), joined with `themes`. This keeps macOS
+/// (`~/Library/Application Support/xtop/themes`) and Windows
+/// (`%APPDATA%\xtop\themes`) consistent with the rest of the app instead of
+/// hard-coding the XDG `~/.config` layout.
 pub fn themes_dir() -> std::path::PathBuf {
-    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
-        std::path::PathBuf::from(xdg).join("xtop").join("themes")
-    } else if let Ok(home) = std::env::var("HOME") {
-        std::path::PathBuf::from(home)
-            .join(".config")
-            .join("xtop")
-            .join("themes")
-    } else {
-        std::path::PathBuf::from(".")
-            .join(".config")
-            .join("xtop")
-            .join("themes")
-    }
+    crate::config::config_dir().join("themes")
 }
 
 pub fn load_all_themes() -> Vec<Theme> {

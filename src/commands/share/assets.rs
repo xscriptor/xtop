@@ -35,12 +35,14 @@ const DEFAULT_THEMES: &[(&str, &str)] = &[
         "bogota",
         include_str!("../../../assets/themes/bogota.jsonc"),
     ),
+    ("miami", include_str!("../../../assets/themes/miami.jsonc")),
 ];
 
 /// Version of the seeded asset templates. Bumped when the shipped defaults
 /// change so existing installs receive the new templates (without ever
-/// clobbering files the user has edited).
-const ASSETS_VERSION: &str = "1";
+/// clobbering files the user has edited). "2": the `miami` theme joined the
+/// embedded seeding set.
+const ASSETS_VERSION: &str = "2";
 
 /// Write shipped defaults (themes and layouts) into the user config dir.
 ///
@@ -85,7 +87,53 @@ pub fn save_config(state: &AppState) {
     }
     cfg.layout_mode = state.layout_mode;
     cfg.update_interval_ms = state.update_interval_ms;
-    cfg.alerts = state.alerts;
+    cfg.alerts = state.alerts.clone();
     cfg.keybindings = state.keybindings.clone();
     let _ = config::save_config(&cfg);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DEFAULT_THEMES;
+
+    /// Every shipped theme file is embedded as a seeding template; the docs
+    /// (README, features, customization) count exactly 12 themes and the
+    /// assets/ folder must match `DEFAULT_THEMES` name for name.
+    #[test]
+    fn every_theme_file_is_embedded_as_a_seed() {
+        let names: Vec<&str> = DEFAULT_THEMES.iter().map(|(name, _)| *name).collect();
+        assert_eq!(names.len(), 12, "docs claim 12 themes");
+        for shipped in [
+            "x", "berlin", "bogota", "helsinki", "lahabana", "london", "madrid", "miami", "oslo",
+            "paris", "praha", "tokio",
+        ] {
+            assert!(
+                names.contains(&shipped),
+                "missing embedded theme: {shipped}"
+            );
+        }
+    }
+
+    /// The embedded templates must parse through the same JSONC path the
+    /// loader uses at runtime (name + 16-entry palette), so a first run can
+    /// never seed a broken file.
+    #[test]
+    fn embedded_themes_parse_with_a_full_palette() {
+        for &(name, content) in DEFAULT_THEMES {
+            let cleaned = crate::theme::strip_jsonc_comments(content);
+            let parsed: serde_json::Value = serde_json::from_str(&cleaned)
+                .unwrap_or_else(|e| panic!("{name} template must be valid JSONC: {e}"));
+            assert_eq!(
+                parsed["name"].as_str(),
+                Some(name),
+                "theme template name must match its entry"
+            );
+            let palette = parsed["palette"].as_array().expect("palette array");
+            assert_eq!(
+                palette.len(),
+                16,
+                "{name} palette must have exactly 16 colors"
+            );
+        }
+    }
 }

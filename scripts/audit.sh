@@ -5,10 +5,14 @@
 #   - cfg(target_os) outside platform/ trees        : must be 0
 #   - files over 600 lines                           : must be 0
 #   - TODO/FIXME/XXX/HACK markers                    : must be 0
-#   - `pub use ...::*` wildcard re-exports           : <= 30 (down from 30+)
+#   - `pub use ...::*` wildcard re-exports           : <= 30
 #   - LOC per top-level area                         : <= 2400
+#   - dead src/commands/plugins_dir_tmp/ tree        : must be absent
+#   - theme seeds embedded (miami included, 12 total): must hold
 #
 # Non-failing metrics are printed for tracking (LOC, module count).
+# Not implemented (deferred): module dependency graph/cycles, unused-pub
+# detection. See the ROADMAP R3 entry for the follow-up note.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 SRC=src
@@ -57,6 +61,22 @@ done
 main_loc=$(wc -l < "$SRC/main.rs")
 total_loc=$((total_loc + main_loc))
 echo "main.rs: $main_loc / total kernel: $total_loc"
+
+# --- dead pre-monocrate leftover tree -------------------------------------------------
+if [ -d "$SRC/commands/plugins_dir_tmp" ]; then
+    echo "dead src/commands/plugins_dir_tmp/ tree still present (must be absent)"
+    fail=1
+else
+    echo "dead src/commands/plugins_dir_tmp/ tree: absent (ok)"
+fi
+
+# --- theme seeds match the shipped set ------------------------------------------------
+seed_file="$SRC/commands/share/assets.rs"
+seeds=$(grep -c 'include_str!("../../../assets/themes/' "$seed_file")
+miami_seeded=$(grep -c '"miami", include_str!("../../../assets/themes/miami.jsonc")' "$seed_file")
+echo "embedded theme seeds: $seeds (expect 12, miami included)"
+[ "$seeds" -eq 12 ] || fail=1
+[ "$miami_seeded" -ge 1 ] || { echo "  ^ miami missing from the embedded seeds"; fail=1; }
 
 # --- module graph sanity (imports of kernel areas from lower layers) -------------------
 echo "cross-area imports (info):"

@@ -1,7 +1,8 @@
 [package]
 name = "xtop"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
+rust-version = "1.87"
 license = "MIT"
 description = "A modern, cross-platform TUI system monitor written in Rust"
 repository = "https://github.com/xtop-cli/xtop"
@@ -11,30 +12,33 @@ name = "xtop"
 path = "src/main.rs"
 
 [dependencies]
-crossterm = "0.28"
-ratatui = "0.29"
+crossterm = "0.29"
+ratatui = "0.30.2"
 sysinfo = "0.39"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
 
-# xtop-cli/api, xtop-cli/plugins, xtop-cli/extensions y xtop-cli/layouts
-# (repos hermanos).
+# Contract crates from xtop-cli/api and the ecosystem repos (xtop-cli/plugins,
+# xtop-cli/extensions, xtop-cli/layouts, xtop-cli/widgets, xtop-cli/effects).
 # Distribution: git dependencies on the published repos, so a clean clone
-# builds without needing their sources checked out.
+# builds without needing their sources checked out locally.
 xtop-plugin-api = { git = "https://github.com/xtop-cli/api" }
 xtop-extension-api = { git = "https://github.com/xtop-cli/api" }
 xtop-widget-api = { git = "https://github.com/xtop-cli/api" }
-# xtop-cli/widgets (packs base y alternativos, en su propio repo).
+xtop-effect-api = { git = "https://github.com/xtop-cli/api", optional = true }
+# xtop-cli/widgets (base and alternative packs, in their own repo).
 xtop-widgets = { git = "https://github.com/xtop-cli/widgets" }
 xtop-widget-blocks = { git = "https://github.com/xtop-cli/widgets", optional = true }
 xtop-layout = { git = "https://github.com/xtop-cli/layouts" }
 xtop-extension-mcp = { git = "https://github.com/xtop-cli/extensions", optional = true }
 xtop-plugin-samurai = { git = "https://github.com/xtop-cli/plugins", optional = true }
+xtop-effect-fade = { git = "https://github.com/xtop-cli/effects", optional = true }
 
 [features]
 default = ["plugin-samurai", "mcp-extension"]
 plugin-samurai = ["dep:xtop-plugin-samurai"]
 mcp-extension = ["dep:xtop-extension-mcp"]
 widget-blocks = ["dep:xtop-widget-blocks"]
+effects = ["dep:xtop-effect-fade", "dep:xtop-effect-api"]

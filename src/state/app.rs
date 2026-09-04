@@ -2,15 +2,14 @@
 //! control, plugins.
 
 use crate::config::keybinding::{Action, Keybindings};
-use crate::config::{AlertThresholds, Config, UiStyle};
+use crate::config::{Config, UiStyle};
 use crate::plugins::PluginManager;
 use crate::state::history::MetricsHistory;
 use crate::state::view::{FullScreenWidget, InputMode, PalettePage, PaletteState, ProcessSortBy};
 use crate::theme::Theme;
 use xtop_layout::{layout_index_from_mode, layout_mode_for_name, LayoutDef, LayoutMode};
 use xtop_plugin_api::model::{ProcessInfo, SystemInfo, SystemSnapshot};
-use xtop_plugin_api::SystemDataProvider;
-use xtop_plugin_api::WidgetRegistration;
+use xtop_plugin_api::{AlertThresholds, PluginWidget, SystemDataProvider};
 
 pub struct AppState {
     provider: Box<dyn SystemDataProvider>,
@@ -42,7 +41,7 @@ pub struct AppState {
     /// widget/action in that frame (avoids N samples per frame).
     last_snapshot: Option<SystemSnapshot>,
     pub plugin_manager: Option<PluginManager>,
-    pub plugin_widgets: Vec<WidgetRegistration>,
+    pub plugin_widgets: Vec<PluginWidget>,
 }
 
 impl AppState {
@@ -137,7 +136,6 @@ impl AppState {
             disk_high: disk,
         };
     }
-
     /// Switch to a theme by name. Returns true if found.
     pub fn set_theme_by_name(&mut self, name: &str) -> bool {
         if let Some(idx) = self.themes.iter().position(|t| t.name == name) {
@@ -435,6 +433,7 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::default_alerts;
     use xtop_layout::{default_layouts, LayoutMode};
 
     fn test_state(defs: Vec<LayoutDef>) -> AppState {
@@ -458,7 +457,7 @@ mod tests {
 
     #[test]
     fn test_alert_thresholds_default() {
-        let a = AlertThresholds::default();
+        let a = default_alerts();
         assert_eq!(a.cpu_high, 90.0);
         assert_eq!(a.mem_high, 90.0);
         assert_eq!(a.disk_high, 90.0);

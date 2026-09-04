@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use crate::state::AppState;
 use xtop_plugin_api::SystemDataProvider;
-use xtop_plugin_api::{Plugin, PluginCapability, PluginContext, PluginError, WidgetRegistration};
+use xtop_plugin_api::{Plugin, PluginCapability, PluginContext, PluginError, PluginWidget};
 
 /// Manages the lifecycle of all loaded plugins.
 ///
@@ -122,8 +122,8 @@ impl PluginManager {
 
     /// Collect all widget registrations from plugins.
     /// Only includes widgets from plugins with `RenderWidgets` capability.
-    pub fn collect_widgets(&self) -> Vec<WidgetRegistration> {
-        let mut widgets: Vec<WidgetRegistration> = Vec::new();
+    pub fn collect_widgets(&self) -> Vec<PluginWidget> {
+        let mut widgets: Vec<PluginWidget> = Vec::new();
         for plugin in &self.plugins {
             if Self::plugin_has_capability(&**plugin, &PluginCapability::RenderWidgets) {
                 if let Some(widget) = plugin.widget() {

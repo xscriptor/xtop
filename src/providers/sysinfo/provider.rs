@@ -312,7 +312,6 @@ impl SystemDataProvider for SysinfoProvider {
             disk_io: self.disk_io_inner(),
             batteries: read_batteries(),
             gpus: read_gpu_info(),
-            dockers: vec![],
             sys_info: self.cached_sys_info.clone(),
         }
     }

@@ -1,20 +1,19 @@
 //! Layout render engine: splits rects and dispatches widget renderers.
 //!
 //! Widgets live in packs (see the `widgets` repo); the kernel resolves
-//! `(pack, name)` at render time. Plugin widgets keep precedence over packs
-//! and can replace any name.
+//! `(pack, name)` at render time. Plugin widgets ([`PluginWidget`]) keep
+//! precedence over packs and can replace any name. Unknown names are
+//! reported once per process (see [`warn_unknown_widget`]).
 
 use crate::state::AppState;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::Frame;
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock};
+use std::collections::HashSet;
+use std::sync::{Mutex, OnceLock};
 use xtop_layout::{Direction, LayoutArea, LayoutConstraint, LayoutDef, LayoutNode};
-use xtop_plugin_api::HostState;
+use xtop_plugin_api::PluginWidget;
 use xtop_widget_api::WidgetRenderer;
-
-/// A plugin widget renderer (plugins see only the API contract).
-pub type PluginWidgetFn = Arc<dyn Fn(&mut Frame, &dyn HostState, Rect) + Send + Sync>;
 
 /// One compiled-in widget pack.
 struct Pack {
@@ -73,8 +72,9 @@ pub fn render_layout(
     state: &AppState,
     area: Rect,
     def: &LayoutDef,
-    plugin_widgets: &HashMap<String, PluginWidgetFn>,
+    plugin_widgets: &HashMap<String, PluginWidget>,
 ) {
+    warn_unknown_widgets(state, def, plugin_widgets);
     render_node(f, state, area, &def.root, plugin_widgets);
 }
 
@@ -85,10 +85,10 @@ pub fn render_named(
     state: &AppState,
     name: &str,
     area: Rect,
-    plugin_widgets: &HashMap<String, PluginWidgetFn>,
+    plugin_widgets: &HashMap<String, PluginWidget>,
 ) -> bool {
-    if let Some(render_fn) = plugin_widgets.get(name) {
-        render_fn(f, state, area);
+    if let Some(widget) = plugin_widgets.get(name) {
+        (widget.render)(f, state, area);
         return true;
     }
     if let Some(render_fn) = resolve(state, name) {
@@ -103,7 +103,7 @@ fn render_node(
     state: &AppState,
     area: Rect,
     node: &LayoutNode,
-    plugin_widgets: &HashMap<String, PluginWidgetFn>,
+    plugin_widgets: &HashMap<String, PluginWidget>,
 ) {
     match node {
         LayoutNode::Widget { name } => {
@@ -113,15 +113,11 @@ fn render_node(
             if areas.is_empty() {
                 return;
             }
-            let dir = match direction {
-                Direction::Horizontal => ratatui::prelude::Direction::Horizontal,
-                Direction::Vertical => ratatui::prelude::Direction::Vertical,
-            };
             let constraints: Vec<Constraint> = areas.iter().map(to_ratatui_constraint).collect();
-            let chunks = Layout::default()
-                .direction(dir)
-                .constraints(constraints)
-                .split(area);
+            let chunks = match direction {
+                Direction::Horizontal => Layout::horizontal(constraints).split(area),
+                Direction::Vertical => Layout::vertical(constraints).split(area),
+            };
             for (i, chunk) in chunks.iter().enumerate() {
                 if i < areas.len() {
                     render_node(f, state, *chunk, &areas[i].node, plugin_widgets);
@@ -136,5 +132,82 @@ fn to_ratatui_constraint(area: &LayoutArea) -> Constraint {
         LayoutConstraint::Length(n) => Constraint::Length(n),
         LayoutConstraint::Percentage(p) => Constraint::Percentage(p),
         LayoutConstraint::Fill => Constraint::Fill(1),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Unknown-widget reporting (DR-3): a layout referencing a name no pack or
+// plugin provides renders an empty area; that is a user-facing mistake, so
+// the kernel warns once per widget name per process.
+// ---------------------------------------------------------------------------
+
+/// Widget names already reported as unknown this process.
+static REPORTED_UNKNOWN_WIDGETS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+
+/// Emit at most one stderr warning per unknown widget name per process.
+fn warn_unknown_widget(layout: &str, name: &str) {
+    if report_unknown_widget(name) {
+        eprintln!("xtop: layout '{layout}' references unknown widget '{name}'");
+    }
+}
+
+/// Mark a widget name as reported. Returns `true` on the first call for a
+/// given name, `false` for every later call (the one-warning-per-name
+/// guarantee). The set never shrinks, so the render path only pays for a
+/// name once per process.
+fn report_unknown_widget(name: &str) -> bool {
+    let reported = REPORTED_UNKNOWN_WIDGETS.get_or_init(|| Mutex::new(HashSet::new()));
+    let Ok(mut seen) = reported.lock() else {
+        return true;
+    };
+    seen.insert(name.to_string())
+}
+
+/// Walk the layout tree once per frame and warn about leaf names no pack or
+/// plugin can render. Cheap (pure name collection over a small tree); the
+/// per-name dedup keeps repeated frames silent.
+fn warn_unknown_widgets(
+    state: &AppState,
+    def: &LayoutDef,
+    plugin_widgets: &HashMap<String, PluginWidget>,
+) {
+    fn walk<'a>(node: &'a LayoutNode, names: &mut Vec<&'a str>) {
+        match node {
+            LayoutNode::Widget { name } => names.push(name),
+            LayoutNode::Split { areas, .. } => {
+                for area in areas {
+                    walk(&area.node, names);
+                }
+            }
+        }
+    }
+
+    let mut names = Vec::new();
+    walk(&def.root, &mut names);
+    for name in names {
+        if !plugin_widgets.contains_key(name) && resolve(state, name).is_none() {
+            warn_unknown_widget(&def.name, name);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{report_unknown_widget, REPORTED_UNKNOWN_WIDGETS};
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+
+    #[test]
+    fn unknown_widget_warns_once_per_name() {
+        // Reset the process-wide set so this test is order-independent.
+        REPORTED_UNKNOWN_WIDGETS
+            .set(Mutex::new(HashSet::new()))
+            .ok();
+        // First report of a name returns true (a warning is emitted)...
+        assert!(report_unknown_widget("ghost"));
+        // ...every later report of the same name is silent.
+        assert!(!report_unknown_widget("ghost"));
+        // A different name still warns.
+        assert!(report_unknown_widget("phantom"));
     }
 }

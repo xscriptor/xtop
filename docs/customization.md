@@ -37,13 +37,16 @@
 
 <h3 id="theme-location">Location</h3>
 
-<p>Place theme files in:</p>
+<p>Theme files live in the <code>themes/</code> subfolder of the platform config
+directory (the same tree as <code>config.json</code> and the layouts):</p>
 
-<pre><code>~/.config/xtop/themes/*.jsonc
-~/.config/xtop/themes/*.json
+<pre><code>~/.config/xtop/themes/*.jsonc                (Linux)
+~/Library/Application Support/xtop/themes/   (macOS)
+%APPDATA%\xtop\themes\                       (Windows)
 </code></pre>
 
-<p>The directory is created automatically when you save your config on quit.</p>
+<p>The directory and the shipped theme files are created automatically on
+first run; no manual copy is needed.</p>
 
 <h3 id="theme-format">Format</h3>
 
@@ -168,24 +171,33 @@
 
 <h3 id="starter-themes">Starter Themes</h3>
 
-<p>The built-in default theme is <code>x</code> (almost-black background, purple-pink accents). It is compiled into the binary and always available.</p>
-
-<p>When you run xtop for the first time, it automatically creates <code>~/.config/xtop/themes/</code> with all extra themes embedded in the binary. No manual copy is needed.</p>
+<p>xtop ships <strong>12 themes</strong>. The <code>x</code> palette (almost-black
+background, purple-pink accents) is compiled into the binary as the startup
+fallback; all 12 definitions — including <code>x</code> and <code>miami</code> —
+are embedded in the binary as seeding templates. The first run writes them
+into the themes directory above, so every shipped theme is available without
+copying anything.</p>
 
 <p>If you want to restore them later, copy from the repository:</p>
 
 <pre><code>cp -r assets/themes/* ~/.config/xtop/themes/</code></pre>
 
-<p><strong>Available themes:</strong> <code>x</code>, <code>madrid</code>, <code>lahabana</code>, <code>paris</code>, <code>tokio</code>, <code>oslo</code>, <code>helsinki</code>, <code>berlin</code>, <code>london</code>, <code>praha</code>, <code>bogota</code>, <code>miami</code>.</p>
+<p><strong>Available themes:</strong> <code>x</code>, <code>berlin</code>, <code>bogota</code>,
+<code>helsinki</code>, <code>lahabana</code>, <code>london</code>, <code>madrid</code>,
+<code>miami</code>, <code>oslo</code>, <code>paris</code>, <code>praha</code>,
+<code>tokio</code>.</p>
 
-<p>All theme definitions are documented in <a href="../colors.md"><code>colors.md</code></a>.</p>
+<p>All theme palettes are documented in <a href="colors.md"><code>colors.md</code></a>.</p>
 
 <h3 id="loading-order">Loading Order</h3>
 
 <ol>
-  <li>Built-in <code>miami</code> theme (always available)</li>
-  <li>Themes from <code>~/.config/xtop/themes/</code> loaded alphabetically</li>
-  <li>If a custom theme has the same name as <code>miami</code>, it <strong>replaces</strong> the built-in</li>
+  <li>The compiled-in <code>x</code> palette (startup fallback, index 0).</li>
+  <li>Themes from the themes directory (seeded on first run) load on top;
+      a file reusing the name <code>x</code> overrides the compiled palette in
+      place.</li>
+  <li>If a custom theme has the same name as a shipped one, it <strong>replaces</strong>
+      it; new names are appended after the shipped set.</li>
 </ol>
 
 <h3 id="theme-tips">Tips</h3>
@@ -374,7 +386,7 @@ extra layouts.</p>
 <h3 id="layout-notes">Notes</h3>
 
 <ul>
-  <li>If a widget name in your layout doesn't match any available widget, that area is silently skipped.</li>
+  <li>If a widget name in your layout doesn't match any available widget, that area is skipped and xtop prints a one-time warning to stderr (<code>xtop: layout '&lt;layout&gt;' references unknown widget '&lt;name&gt;'</code>).</li>
   <li>Nested splits can be arbitrarily deep, but very deep nesting may overflow small terminals.</li>
   <li>The terminal must be at least 40×8 for any layout to render; smaller terminals show a warning.</li>
   <li>Very small terminals (under 60×14) fall back to a minimal hardcoded layout (CPU + Memory gauges + process list).</li>
@@ -382,9 +394,9 @@ extra layouts.</p>
 
 <h3 id="glyph-style">Widget glyph style</h3>
 
-<p>Los charts (CPU/Memory/Network) y los bordes de los widgets se dibujan con
-glifos por defecto (braille, bordes redondeados/unicode). Se pueden cambiar en
-<code>~/.config/xtop/config.json</code> dentro de la clave <code>style</code>:</p>
+<p>Charts (CPU/Memory/Network) and widget borders are drawn with glyph styles
+you can change in <code>config.json</code> under the <code>style</code> key (see
+<a href="configuration.md">configuration.md</a>):</p>
 
 <pre><code>{
   "theme": "x",
@@ -399,17 +411,20 @@ glifos por defecto (braille, bordes redondeados/unicode). Se pueden cambiar en
 }</code></pre>
 
 <ul>
-  <li><code>charset</code>: <code>braille</code> (por defecto), <code>dot</code>, <code>block</code>, <code>half_block</code>, <code>bar</code>.</li>
-  <li><code>borders</code>: <code>native</code> (cada widget con su borde clásico, por defecto), <code>rounded</code>, <code>double</code>, <code>plain</code>, <code>ascii</code> (<code>+-|</code>).</li>
-  <li><code>widgets</code>: override por widget (los nombres son los que usan los
-      layouts: <code>header</code>, <code>cpu</code>, <code>memory</code>, <code>storage</code>,
-      <code>network</code>, <code>processes</code>, <code>disk_io</code>, <code>battery</code>, <code>gpu</code>).</li>
+  <li><code>charset</code>: <code>braille</code> (default), <code>dot</code>, <code>block</code>, <code>half_block</code>, <code>bar</code>.</li>
+  <li><code>borders</code>: <code>native</code> (default; the classic single-line box-drawing frame), <code>rounded</code>, <code>double</code>, <code>plain</code> and <code>ascii</code> (both plain and ascii draw a pure ASCII <code>+-|</code> frame).</li>
+  <li><code>widgets</code>: per-widget overrides. Keys are the widget names layouts
+      use: <code>header</code>, <code>cpu</code>, <code>memory</code>, <code>storage</code>,
+      <code>network</code>, <code>processes</code>, <code>disk_io</code>, <code>battery</code>, <code>gpu</code>.
+      Each entry accepts <code>charset</code>, <code>borders</code> and an optional
+      <code>pack</code> (widget pack to render that name with, e.g. <code>"blocks"</code>).
+      A global <code>style.pack</code> sets the pack for every widget without a
+      per-widget override.</li>
 </ul>
 
-<p>Los estilos son solo de apariencia: la estructura de cada widget sigue
-siendo la que dibuja el kernel. Un widget completamente nuevo (otra lógica o
-  renderer) se puede aportar como plugin (los renderers de plugins tienen
-  precedencia sobre los built-in).</p>
+<p>Glyph styles only change the look: the data behind each widget is drawn by
+the widget packs (see <a href="plugin.md">plugin.md</a> for how a plugin adds
+completely new renderers, which take precedence over packs).</p>
 
 <hr>
 

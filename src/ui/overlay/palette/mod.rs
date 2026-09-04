@@ -1,15 +1,15 @@
 //! Command palette widget: themes/layouts quick selection.
 
 use crate::state::{AppState, PalettePage};
-use crate::ui::share::to_color;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
+use xtop_widget_api::glyph::to_color;
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
-    let fg = to_color(state.current_theme.fg());
-    let bg = to_color(state.current_theme.bg());
-    let accent = to_color(&state.current_theme.palette[6]);
+    let fg = to_color(*state.current_theme.fg());
+    let bg = to_color(*state.current_theme.bg());
+    let accent = to_color(state.current_theme.palette[6]);
 
     let popup_width = (area.width as f64 * 0.6).min(60.0) as u16;
     let popup_height = (area.height as f64 * 0.6).min(30.0) as u16;

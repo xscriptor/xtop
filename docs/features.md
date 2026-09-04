@@ -55,13 +55,13 @@
 <h3 id="gpu">GPU</h3>
 
 <ul>
-  <li>GPU usage gauges (stub implementation, ready for NVIDIA/AMD support).</li>
+  <li>GPU usage gauges: real data on Linux (NVIDIA via <code>nvidia-smi</code>, AMD/Intel via <code>/sys/class/drm</code>); stub on macOS/Windows.</li>
 </ul>
 
 <h3 id="battery">Battery</h3>
 
 <ul>
-  <li>Battery charge level gauges (stub implementation, ready for laptop support).</li>
+  <li>Battery charge level gauges: real data on Linux (<code>/sys/class/power_supply</code>); stub on macOS/Windows.</li>
 </ul>
 
 <hr>
@@ -69,10 +69,10 @@
 <h2 id="theming">Theming</h2>
 
 <ul>
-  <li>13 ready-to-use color schemes built into the binary.</li>
+  <li>12 color schemes: 12 JSONC theme files ship in <code>assets/themes/</code> and are embedded in the binary as first-run seeding templates.</li>
   <li>Custom themes defined as JSONC files with a 16-entry hex color palette.</li>
   <li>Instant theme cycling with <kbd>t</kbd> (next) and <kbd>T</kbd> (previous).</li>
-  <li>Starter theme files ship in the <code>assets/themes/</code> directory.</li>
+  <li>Palette reference in <a href="colors.md">colors.md</a>.</li>
 </ul>
 
 <hr>
@@ -101,8 +101,8 @@
 <h2 id="persistence">Persistence</h2>
 
 <ul>
-  <li>Current theme, layout mode, update interval, history points, and alert thresholds are saved automatically on quit.</li>
-  <li>Configuration is stored at <code>~/.config/xtop/config.json</code>.</li>
+  <li>Current theme, layout, update interval, history points, alert thresholds and glyph style are saved automatically on quit.</li>
+  <li>Configuration is stored as <code>config.json</code> in the platform config dir: <code>~/.config/xtop/</code> on Linux, <code>~/Library/Application Support/xtop/</code> on macOS, <code>%APPDATA%\xtop</code> on Windows.</li>
 </ul>
 
 <hr>

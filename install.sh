@@ -6,9 +6,9 @@
 set -euo pipefail
 
 APP_NAME="xtop"
-REPO_URL="https://github.com/xscriptor/xtop.git"
+REPO_URL="https://github.com/xtop-cli/xtop.git"
 INSTALL_DIR="/usr/local/bin"
-VERSION="1.0.0"
+VERSION="0.3.0"
 
 # Colors
 GREEN='\033[0;32m'
@@ -83,16 +83,16 @@ get_build_deps() {
             echo "base-devel git"
             ;;
         apt)
-            echo "build-essential git pkg-config libssl-dev"
+            echo "build-essential git"
             ;;
         dnf|yum)
-            echo "gcc gcc-c++ make git pkg-config openssl-devel"
+            echo "gcc gcc-c++ make git"
             ;;
         zypper)
-            echo "gcc gcc-c++ make git pkg-config libopenssl-devel"
+            echo "gcc gcc-c++ make git"
             ;;
         apk)
-            echo "build-base git pkgconfig openssl-dev"
+            echo "build-base git"
             ;;
         *)
             echo ""
@@ -114,7 +114,7 @@ install_build_deps() {
     
     if [ -z "$deps" ]; then
         log_warn "Unknown package manager. Please install build dependencies manually."
-        log_warn "Required: C compiler, git, pkg-config, OpenSSL development headers"
+        log_warn "Required: git and a Rust toolchain (rustup installs it automatically)"
         return 1
     fi
     
@@ -203,22 +203,8 @@ check_all_deps() {
         ((missing++))
     fi
     
-    # Check for C compiler
-    if command -v gcc &> /dev/null || command -v clang &> /dev/null; then
-        log_success "C compiler found"
-    else
-        log_warn "No C compiler found (gcc or clang)"
-        ((missing++))
-    fi
-    
-    # Check for pkg-config
-    if command -v pkg-config &> /dev/null; then
-        log_success "pkg-config found"
-    else
-        log_warn "pkg-config not found"
-        ((missing++))
-    fi
-    
+    # A C toolchain is not required: xtop and its dependencies are pure Rust.
+    # git is checked above; cargo is the only remaining hard requirement.
     if [ $missing -gt 0 ]; then
         log_warn "$missing dependencies missing"
         return 1

@@ -96,7 +96,7 @@
     <p><strong>Disk I/O</strong> -- Read and write speeds per disk device in bytes per second.</p>
   </li>
   <li>
-    <p><strong>Processes</strong> -- Scrolling list of the top 50 processes sorted by CPU usage, with live search filtering by process name.</p>
+    <p><strong>Processes</strong> -- Scrolling list of processes sorted by CPU usage (top 200 by default; override with <code>XTOP_MAX_PROCESSES</code>), with live search filtering by process name.</p>
   </li>
   <li>
     <p><strong>GPU</strong> -- GPU usage gauges (available on supported hardware).</p>
@@ -114,9 +114,9 @@
 
 <hr>
 
-<h2 id="command-palette">Command Palette</h2>
+<h2 id="process-search">Process Search</h2>
 
-<p>xtop provides an interactive search overlay for filtering processes in real time:</p>
+<p>Search filters the process list in real time:</p>
 
 <ul>
   <li>Press <kbd>/</kbd> to open the search bar at the top of the process list.</li>
@@ -125,7 +125,18 @@
   <li>A centered overlay with a <code>/query_</code> indicator shows the current search input.</li>
 </ul>
 
-<p>The help overlay (<kbd>?</kbd>) serves as a quick-reference command palette for all available keybindings and actions.</p>
+<hr>
+
+<h2 id="command-palette">Command Palette</h2>
+
+<p>Press <kbd>ctrl+p</kbd> to open the command palette, a searchable list of
+actions (also reachable with the <code>command_palette</code> keybinding).
+The palette has three pages: <strong>Main</strong> (go to themes/layouts,
+toggle or cycle full-screen, search, help, cycle the process sort, random
+theme, exit), <strong>Themes</strong> (jump to any loaded theme) and
+<strong>Layouts</strong> (jump to any layout). Type to filter, use
+<kbd>up</kbd>/<kbd>down</kbd> to move, <kbd>Enter</kbd> to run the selected
+action and <kbd>Esc</kbd> to close.</p>
 
 <hr>
 
@@ -151,19 +162,23 @@
   </thead>
   <tbody>
     <tr>
-      <td>Wider than 100 cols and taller than 30 rows</td>
+      <td>Dashboard mode, 100+ cols and 28+ rows</td>
       <td>Full dashboard layout with 2 columns</td>
     </tr>
     <tr>
-      <td>Wider than 80 cols and taller than 24 rows</td>
+      <td>Dashboard mode, 80&ndash;99 cols or under 28 rows</td>
       <td>Compact layout</td>
     </tr>
     <tr>
-      <td>Narrower than 80 cols</td>
+      <td>Dashboard mode, narrower than 80 cols</td>
       <td>Vertically stacked layout</td>
     </tr>
     <tr>
-      <td>Narrower than 60 cols or shorter than 18 rows</td>
+      <td>Other modes</td>
+      <td>The requested mode layout (Vertical, Horizontal, CPU/Memory/Network/Process Focus)</td>
+    </tr>
+    <tr>
+      <td>Narrower than 60 cols or shorter than 14 rows</td>
       <td>Minimal layout: CPU, Memory, and Processes only</td>
     </tr>
     <tr>

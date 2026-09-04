@@ -5,8 +5,9 @@
 <h2 id="table-of-contents">Table of Contents</h2>
 
 <ul>
-  <li><a href="#quick-install-macos-linux">Quick Install (macOS/Linux)</a></li>
+  <li><a href="#quick-install-linux">Quick Install (Linux)</a></li>
   <li><a href="#quick-install-windows">Quick Install (Windows)</a></li>
+  <li><a href="#macos">macOS</a></li>
   <li><a href="#installer-options">Installer Options</a></li>
   <li><a href="#build-from-source">Build from Source</a></li>
   <li><a href="#uninstall">Uninstall</a></li>
@@ -15,17 +16,20 @@
 
 <hr>
 
-<h2 id="quick-install-macos-linux">Quick Install (macOS/Linux)</h2>
+<h2 id="quick-install-linux">Quick Install (Linux)</h2>
 
-<p>The installer script automatically detects your distribution and installs all required dependencies, including Rust if needed.</p>
+<p>The installer script detects the distribution and its package manager,
+installs the build prerequisites (git and, when missing, the Rust toolchain
+via rustup), clones the repository, builds it in release mode and installs
+the binary to <code>/usr/local/bin</code>.</p>
 
 <h3>Using curl</h3>
 
-<pre><code>curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash</code></pre>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash</code></pre>
 
 <h3>Using wget</h3>
 
-<pre><code>wget -qO- https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash</code></pre>
+<pre><code>wget -qO- https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash</code></pre>
 
 <hr>
 
@@ -33,7 +37,14 @@
 
 <p>Requires <a href="https://rustup.rs/">Rust (Cargo)</a> to be installed. Run in PowerShell:</p>
 
-<pre><code>irm https://raw.githubusercontent.com/xscriptor/xtop/main/install.ps1 | iex</code></pre>
+<pre><code>irm https://raw.githubusercontent.com/xtop-cli/xtop/main/install.ps1 | iex</code></pre>
+
+<hr>
+
+<h2 id="macos">macOS</h2>
+
+<p>There is no dedicated macOS branch in <code>install.sh</code> yet; install a
+Rust toolchain (rustup) and build from source as below.</p>
 
 <hr>
 
@@ -67,7 +78,7 @@
 <ol>
   <li>
     <p>Clone the repository:</p>
-    <pre><code>git clone https://github.com/xscriptor/xtop.git
+    <pre><code>git clone https://github.com/xtop-cli/xtop.git
 cd xtop</code></pre>
   </li>
   <li>
@@ -80,13 +91,16 @@ cd xtop</code></pre>
 
 <h2 id="uninstall">Uninstall</h2>
 
-<h3>macOS / Linux</h3>
+<p>The uninstallers remove the binary only; user configuration under the
+config directory is kept.</p>
 
-<pre><code>curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash -s -- --uninstall</code></pre>
+<h3>Linux</h3>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/xtop-cli/xtop/main/install.sh | bash -s -- --uninstall</code></pre>
 
 <h3>Windows</h3>
 
-<pre><code>irm https://raw.githubusercontent.com/xscriptor/xtop/main/uninstall.ps1 | iex</code></pre>
+<pre><code>irm https://raw.githubusercontent.com/xtop-cli/xtop/main/uninstall.ps1 | iex</code></pre>
 
 <hr>
 

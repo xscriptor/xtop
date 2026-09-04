@@ -18,6 +18,8 @@ It is synced automatically with GitHub Issues.
 
 - [x] Dynamic layout manager supporting multiple modes (Dashboard, Vertical, Process Focus) (#9)
 - [x] Implement 13 built-in color schemes (`x`, `madrid`, `tokio`, etc.) (#10)
+      (12 theme files ship today, all embedded and seeded; the 0.3.0 docs
+      count 12. See docs/colors.md for the palette reference.)
 - [x] Instant theme and layout cycling at runtime (#11)
 - [x] Responsive design for narrow terminals (#12)
 
@@ -31,25 +33,35 @@ It is synced automatically with GitHub Issues.
 
 ## Phase 4: Configuration & Customization <!-- phase:config -->
 
-- [ ] Persistent configuration file support (save theme and layout preferences) (#18)
-- [ ] Custom user theme creation via configuration (#19)
-- [ ] Configurable update intervals for system metrics (#20)
-- [ ] Customizable keybindings (#21)
+- [x] Persistent configuration file support (save theme and layout preferences) (#18)
+- [x] Custom user theme creation via configuration (#19)
+- [x] Configurable update intervals for system metrics (#20)
+- [x] Customizable keybindings (#21)
 
 ## Phase 5: Advanced Monitoring Features <!-- phase:advanced-monitoring -->
 
-- [ ] Disk I/O read/write speed tracking (#22)
-- [ ] Granular network interface selection (#23)
-- [ ] GPU usage, temperature, and VRAM monitoring (NVIDIA/AMD) (#24)
-- [ ] Battery status monitoring (#25)
-- [ ] Docker container resource usage integration (#26)
+- [x] Disk I/O read/write speed tracking (#22)
+- [ ] Granular network interface selection (#23) — per-interface RX/TX data is
+      shown, but picking which interface the kernel reports/charts is not
+      configurable yet.
+- [ ] GPU usage, temperature, and VRAM monitoring (NVIDIA/AMD) (#24) —
+      Linux-only partial (nvidia-smi + /sys/class/drm); macOS/Windows stay
+      stubs.
+- [ ] Battery status monitoring (#25) — Linux probes real; macOS/Windows
+      stay stubs.
+- [ ] Docker container resource usage integration (#26) — Docker support was
+      removed from the shared data model (api M1.4: nothing consumed it), so
+      this item is parked until a real consumer appears.
 
 ## Phase 6: Interactive Process Management <!-- phase:process-management -->
 
-- [ ] Interactive process termination (send kill signals) (#27)
-- [ ] Search, filter, and highlight processes by name (#28)
+- [x] Interactive process termination (send kill signals) (#27)
+- [ ] Search, filter, and highlight processes by name (#28) — search and
+      filtering exist; highlighting matches inside the process list is
+      pending.
 - [ ] Tree view for process hierarchy (#29)
-- [ ] Sorting processes by Memory, PID, or User (#30)
+- [ ] Sorting processes by Memory, PID, or User (#30) — CPU/Memory/PID/Name
+      sorting is implemented; no User column yet.
 
 ## Phase 7: X Integration <!-- phase:x-integration -->
 
@@ -57,4 +69,46 @@ It is synced automatically with GitHub Issues.
 - [ ] Create xp package (#32)
 - [ ] Add to X Repositories (#33)
 
+## Phase 8: Kernel Refactor <!-- phase:refactor -->
 
+Baseline done: single-crate kernel (src/ by areas: config, theme, layout,
+state, plugins, providers, ui, commands); plugin and extension hosts over
+the api contracts; samurai and the mcp extension live in their own repos.
+Only pending refactor work is listed here (git logistics are handled
+outside this roadmap).
+
+### R2 - Code quality pass
+
+- [x] Module doc comments audit across src/ (#40) — the seven top-level
+      modules declared in src/main.rs (commands, config, plugins, providers,
+      state, theme, ui) all carry concise `//!` docs describing their area.
+- [x] cfg(target_os) only inside platform/ trees (#41) — enforced by
+      scripts/audit.sh (0 occurrences outside platform/).
+- [ ] Wildcard re-export and pub hygiene review (#42) — 22 wildcard
+      `pub use ...::*` re-exports remain (audit.sh threshold: 30); review
+      still open.
+- [x] Split commands/plugins.rs into list/install/scaffold modules (#43)
+- [x] key_event_to_str into a shared input module if reused elsewhere (#44) —
+      single use site (commands/run.rs), so no shared module is needed.
+- [x] ui/share/error.rs only when real UI error handling appears (no empty
+      modules) (#45) — intentionally not created; documented in the root
+      ROADMAP deferred list.
+- [x] Widgets subdivide internally when they outgrow one module (#46) —
+      kernel widget renderers were externalized to the widgets repo (M3);
+      the kernel no longer owns pack widgets.
+
+### R3 - Structural audit tooling
+
+- [x] scripts/audit.sh with failing thresholds (#47) — the script gates:
+      cfg(target_os) outside platform/ trees = 0, files over 600 lines = 0,
+      TODO/FIXME/XXX/HACK markers = 0, wildcard `pub use ...::*` <= 30,
+      LOC per top-level area <= 2400, dead pre-monocrate plugin tree absent
+      (its path lives only inside the audit script as the guard itself),
+      `miami` embedded in the theme seeds (12 themes total). Module
+      dependency graph/cycles and unused-pub detection are NOT implemented
+      by the script (see the deferred note below).
+
+Deferred follow-ups (tracked with the root ROADMAP §7 list):
+- audit.sh module dependency graph/cycles and unused-pub detection, plus
+  per-file thresholds above 300/600 lines (the 200-line figure in the
+  original issue predates the current 300/600 gates).

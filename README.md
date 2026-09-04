@@ -4,11 +4,10 @@
 
 ![Rust](https://img.shields.io/badge/Rust-1.87%2B-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![CI](https://img.shields.io/github/actions/workflow/status/xtop-cli/xtop/ci.yml?branch=main)
 ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)
 ![ratatui](https://img.shields.io/badge/built%20with-ratatui-red)
 
-A cross-platform TUI system monitor written in Rust. Uses <a href="https://ratatui.rs">ratatui</a> for the terminal interface and <a href="https://github.com/GuillaumeGomez/sysinfo">sysinfo</a> for real-time system metrics.
+A cross-platform TUI system monitor written in Rust. Uses ratatui for the terminal interface and sysinfo for real-time system metrics.
 
 </div>
 

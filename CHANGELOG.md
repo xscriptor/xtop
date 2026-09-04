@@ -14,6 +14,11 @@
   absence guard.)
 - `crate version 0.2.0 -> 0.3.0`; `rust-version = "1.87"` declared.
 
+### Local-only CI
+- The GitHub Actions CI workflow (`.github/workflows/ci.yml`) has been
+  removed: gating is local only (`scripts/ci.sh`, `scripts/audit.sh`) and
+  will not be re-enabled until the release pipeline is 100% ready.
+
 ### Contract consolidation
 - `config::AlertThresholds` removed: the persisted config now uses
   `xtop_plugin_api::AlertThresholds` directly (identical JSON keys

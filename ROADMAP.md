@@ -41,26 +41,26 @@ It is synced automatically with GitHub Issues.
 ## Phase 5: Advanced Monitoring Features <!-- phase:advanced-monitoring -->
 
 - [x] Disk I/O read/write speed tracking (#22)
-- [ ] Granular network interface selection (#23) — per-interface RX/TX data is
+- [ ] Granular network interface selection (#23) — per-interface RX/TX data is (#39)
       shown, but picking which interface the kernel reports/charts is not
       configurable yet.
-- [ ] GPU usage, temperature, and VRAM monitoring (NVIDIA/AMD) (#24) —
+- [ ] GPU usage, temperature, and VRAM monitoring (NVIDIA/AMD) (#24) — (#40)
       Linux-only partial (nvidia-smi + /sys/class/drm); macOS/Windows stay
       stubs.
-- [ ] Battery status monitoring (#25) — Linux probes real; macOS/Windows
+- [ ] Battery status monitoring (#25) — Linux probes real; macOS/Windows (#41)
       stay stubs.
-- [ ] Docker container resource usage integration (#26) — Docker support was
+- [ ] Docker container resource usage integration (#26) — Docker support was (#42)
       removed from the shared data model (api M1.4: nothing consumed it), so
       this item is parked until a real consumer appears.
 
 ## Phase 6: Interactive Process Management <!-- phase:process-management -->
 
 - [x] Interactive process termination (send kill signals) (#27)
-- [ ] Search, filter, and highlight processes by name (#28) — search and
+- [ ] Search, filter, and highlight processes by name (#28) — search and (#43)
       filtering exist; highlighting matches inside the process list is
       pending.
 - [ ] Tree view for process hierarchy (#29)
-- [ ] Sorting processes by Memory, PID, or User (#30) — CPU/Memory/PID/Name
+- [ ] Sorting processes by Memory, PID, or User (#30) — CPU/Memory/PID/Name (#44)
       sorting is implemented; no User column yet.
 
 ## Phase 7: X Integration <!-- phase:x-integration -->
@@ -79,27 +79,27 @@ outside this roadmap).
 
 ### R2 - Code quality pass
 
-- [x] Module doc comments audit across src/ (#40) — the seven top-level
+- [x] Module doc comments audit across src/ (#40) — the seven top-level (#45)
       modules declared in src/main.rs (commands, config, plugins, providers,
       state, theme, ui) all carry concise `//!` docs describing their area.
-- [x] cfg(target_os) only inside platform/ trees (#41) — enforced by
+- [x] cfg(target_os) only inside platform/ trees (#41) — enforced by (#46)
       scripts/audit.sh (0 occurrences outside platform/).
-- [ ] Wildcard re-export and pub hygiene review (#42) — 22 wildcard
+- [ ] Wildcard re-export and pub hygiene review (#42) — 22 wildcard (#47)
       `pub use ...::*` re-exports remain (audit.sh threshold: 30); review
       still open.
 - [x] Split commands/plugins.rs into list/install/scaffold modules (#43)
-- [x] key_event_to_str into a shared input module if reused elsewhere (#44) —
+- [x] key_event_to_str into a shared input module if reused elsewhere (#44) — (#48)
       single use site (commands/run.rs), so no shared module is needed.
-- [x] ui/share/error.rs only when real UI error handling appears (no empty
+- [x] ui/share/error.rs only when real UI error handling appears (no empty (#49)
       modules) (#45) — intentionally not created; documented in the root
       ROADMAP deferred list.
-- [x] Widgets subdivide internally when they outgrow one module (#46) —
+- [x] Widgets subdivide internally when they outgrow one module (#46) — (#50)
       kernel widget renderers were externalized to the widgets repo (M3);
       the kernel no longer owns pack widgets.
 
 ### R3 - Structural audit tooling
 
-- [x] scripts/audit.sh with failing thresholds (#47) — the script gates:
+- [x] scripts/audit.sh with failing thresholds (#47) — the script gates: (#51)
       cfg(target_os) outside platform/ trees = 0, files over 600 lines = 0,
       TODO/FIXME/XXX/HACK markers = 0, wildcard `pub use ...::*` <= 30,
       LOC per top-level area <= 2400, dead pre-monocrate plugin tree absent

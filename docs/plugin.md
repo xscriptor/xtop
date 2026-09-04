@@ -156,11 +156,11 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
   <tbody>
     <tr>
       <td><code>xtop plugin list</code></td>
-      <td>List installed plugins from workspace members</td>
+      <td>List plugins wired into the kernel <code>Cargo.toml</code></td>
     </tr>
     <tr>
       <td><code>xtop plugin install &lt;name&gt;</code></td>
-      <td>Install a plugin from <code>github.com/xtop-cli/xtop/plugins/</code></td>
+      <td>Install a plugin from <code>github.com/xtop-cli/plugins</code></td>
     </tr>
     <tr>
       <td><code>xtop plugin install &lt;url&gt;</code></td>
@@ -168,7 +168,7 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
     </tr>
     <tr>
       <td><code>xtop plugin scaffold &lt;name&gt;</code></td>
-      <td>Create a new plugin crate template in <code>plugins/</code></td>
+      <td>Create a new plugin crate template in <code>plugins-dev/</code></td>
     </tr>
   </tbody>
 </table>
@@ -178,20 +178,19 @@ ctx.data_dir()             // ~/.config/xtop/plugins/&lt;id&gt;/</code></pre>
 <p>When running <code>xtop plugin install samurai</code>:</p>
 
 <ol>
-  <li>Clones <code>github.com/xtop-cli/xtop.git</code> (shallow, sparse)</li>
-  <li>Looks for <code>plugins/xtop-plugin-samurai/</code> or <code>plugins/samurai/</code> in the clone</li>
-  <li>Copies to local <code>plugins/</code> directory</li>
-  <li>Adds entry to <code>[workspace].members</code> in root <code>Cargo.toml</code></li>
-  <li>Adds optional dependency + feature flag in <code>crates/xtop-cli/Cargo.toml</code></li>
-  <li>Runs <code>cargo build --release</code></li>
-  <li>Cleans up temporary files</li>
+  <li>Resolves the source repo: <code>github.com/xtop-cli/plugins</code> for a name, or the given URL</li>
+  <li>Clones it (shallow, sparse)</li>
+  <li>Locates the <code>xtop-plugin-&lt;name&gt;</code> crate inside the clone</li>
+  <li>Adds an optional git dependency + feature flag in the kernel's root <code>Cargo.toml</code>
+    (same pattern as the built-in <code>xtop-plugin-samurai</code>)</li>
+  <li>Runs <code>cargo check</code> and cleans up temporary files</li>
 </ol>
 
-<p>The plugin is registered in the workspace but <strong>not enabled by default</strong>. To enable it:</p>
+<p>The plugin is registered but <strong>not enabled by default</strong>. To enable it:</p>
 
 <ul>
   <li>Build with <code>--features plugin-&lt;name&gt;</code> for a one-off build</li>
-  <li>Add it to the <code>default</code> list in <code>crates/xtop-cli/Cargo.toml</code> to enable permanently</li>
+  <li>Add it to the <code>default</code> list in <code>[features]</code> in the root <code>Cargo.toml</code> to enable permanently</li>
 </ul>
 
 <pre><code># Build xtop with samurai plugin enabled
@@ -240,31 +239,29 @@ xtop mcp</code></pre>
 
 <ol>
   <li>
-    <p>Create the crate in <code>plugins/</code>:</p>
-    <pre><code>mkdir -p plugins/xtop-plugin-mything/src</code></pre>
+    <p>Scaffold the crate (or write it by hand in your own repo):</p>
+    <pre><code>xtop plugin scaffold mything   # creates plugins-dev/xtop-plugin-mything/</code></pre>
   </li>
   <li>
-    <p>Add to workspace <code>Cargo.toml</code>:</p>
-    <pre><code>[workspace]
-members = [
-    ...
-    "plugins/xtop-plugin-mything",
-]</code></pre>
+    <p>Make it a git repo and push it (the crate must live at the repo root or under
+    <code>plugins/</code>/<code>crates/</code>, e.g. <code>github.com/you/xtop-plugin-mything</code>).</p>
   </li>
   <li>
-    <p>Add dependency + feature in <code>crates/xtop-cli/Cargo.toml</code>:</p>
+    <p>Install it into the kernel (adds optional git dependency + feature flag in the root <code>Cargo.toml</code>):</p>
+    <pre><code>xtop plugin install https://github.com/you/xtop-plugin-mything</code></pre>
+    <p>Equivalent manual edit:</p>
     <pre><code>[dependencies]
-xtop-plugin-mything = { path = "../../plugins/xtop-plugin-mything", optional = true }
+xtop-plugin-mything = { git = "https://github.com/you/xtop-plugin-mything", optional = true }
 
 [features]
 plugin-mything = ["dep:xtop-plugin-mything"]</code></pre>
   </li>
   <li>
-    <p>Register in <code>crates/xtop-cli/src/main.rs</code>:</p>
+    <p>Register it behind the feature flag in <code>src/commands/share/bootstrap.rs</code>:</p>
     <pre><code>#[cfg(feature = "plugin-mything")]
 use xtop_plugin_mything::MythingPlugin;
 
-// In build_plugin_manager():
+// In register_plugins():
 #[cfg(feature = "plugin-mything")]
 {
     let plugin = Box::new(MythingPlugin::new());

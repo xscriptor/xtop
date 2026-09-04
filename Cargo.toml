@@ -19,11 +19,17 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
 
-# xtop-cli/api, xtop-cli/plugins y xtop-cli/extensions (repos hermanos).
+# xtop-cli/api, xtop-cli/plugins, xtop-cli/extensions y xtop-cli/layouts
+# (repos hermanos).
 # Distribution: git dependencies on the published repos, so a clean clone
 # builds without needing their sources checked out.
 xtop-plugin-api = { git = "https://github.com/xtop-cli/api" }
 xtop-extension-api = { git = "https://github.com/xtop-cli/api" }
+xtop-widget-api = { git = "https://github.com/xtop-cli/api" }
+# xtop-cli/widgets (packs base y alternativos, en su propio repo).
+xtop-widgets = { git = "https://github.com/xtop-cli/widgets" }
+xtop-widget-blocks = { git = "https://github.com/xtop-cli/widgets", optional = true }
+xtop-layout = { git = "https://github.com/xtop-cli/layouts" }
 xtop-extension-mcp = { git = "https://github.com/xtop-cli/extensions", optional = true }
 xtop-plugin-samurai = { git = "https://github.com/xtop-cli/plugins", optional = true }
 
@@ -31,3 +37,4 @@ xtop-plugin-samurai = { git = "https://github.com/xtop-cli/plugins", optional = 
 default = ["plugin-samurai", "mcp-extension"]
 plugin-samurai = ["dep:xtop-plugin-samurai"]
 mcp-extension = ["dep:xtop-extension-mcp"]
+widget-blocks = ["dep:xtop-widget-blocks"]

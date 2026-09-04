@@ -1,3 +1,4 @@
+//! Keybinding model: config-driven key -> Action resolution.
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -117,6 +118,23 @@ pub enum Action {
     ProcessUp,
     ProcessDown,
     SortByCpu,
+}
+
+impl Action {
+    /// Whether executing this action changes persisted config (theme/layout).
+    /// Used to avoid rewriting `config.json` on every palette Enter.
+    pub fn persists(&self) -> bool {
+        matches!(
+            self,
+            Action::Quit
+                | Action::NextTheme
+                | Action::PreviousTheme
+                | Action::RandomTheme
+                | Action::NextLayout
+                | Action::SelectTheme(_)
+                | Action::SelectLayout(_)
+        )
+    }
 }
 
 impl Keybindings {

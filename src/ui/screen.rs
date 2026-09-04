@@ -1,23 +1,20 @@
-use crate::layout::{detect_effective_layout, EffectiveLayout};
+//! Screen renderer: dispatches to layouts, fullscreen, overlays and the
+//! minimal view. Data widgets are drawn through the widget packs resolved by
+//! the engine; overlays (help/palette) are kernel-owned.
+
 use crate::state::{AppState, FullScreenWidget, InputMode};
-use crate::ui::layout::{default_widgets, render_layout, PluginWidgetFn, WidgetFn};
+use crate::ui::layout::{render_layout, render_named, PluginWidgetFn};
+use crate::ui::overlay::{help, palette};
 use crate::ui::share::to_color;
-use crate::ui::widgets::*;
 use ratatui::prelude::*;
 use ratatui::Frame;
 use std::collections::HashMap;
-use std::sync::OnceLock;
-
-/// Built-in widgets (lazily initialized).
-fn widgets() -> &'static HashMap<&'static str, WidgetFn> {
-    static WIDGETS: OnceLock<HashMap<&'static str, WidgetFn>> = OnceLock::new();
-    WIDGETS.get_or_init(default_widgets)
-}
+use xtop_layout::{detect_effective_layout, EffectiveLayout};
 
 /// Build a plugin widget lookup map from AppState.
 ///
-/// Plugin renderers only see [`HostState`](xtop_plugin_api::HostState), which
-/// the layout engine provides by coercing `state`.
+/// Plugin renderers only see [`HostState`](xtop_plugin_api::HostState);
+/// they keep precedence over every pack.
 fn plugin_widgets(state: &AppState) -> HashMap<String, PluginWidgetFn> {
     let mut map: HashMap<String, PluginWidgetFn> = HashMap::new();
     for reg in &state.plugin_widgets {
@@ -51,7 +48,7 @@ pub fn render(f: &mut Frame, state: &AppState) {
         render_minimal(f, state, area);
     } else {
         let def = state.current_layout();
-        render_layout(f, state, area, def, widgets(), &pw);
+        render_layout(f, state, area, def, &pw);
     }
 
     if state.input_mode == InputMode::Searching {
@@ -94,17 +91,28 @@ fn render_fullscreen(f: &mut Frame, state: &AppState, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)])
         .split(area);
-    header::render(f, state, chunks[0]);
-    match state.full_screen_widget {
-        FullScreenWidget::Cpu => cpu::render(f, state, chunks[1]),
-        FullScreenWidget::Memory => memory::render(f, state, chunks[1]),
-        FullScreenWidget::Storage => storage::render(f, state, chunks[1]),
-        FullScreenWidget::Network => network::render(f, state, chunks[1]),
-        FullScreenWidget::Processes => processes::render(f, state, chunks[1]),
-        FullScreenWidget::DiskIO => disk_io::render(f, state, chunks[1]),
-        FullScreenWidget::Gpu => gpu::render(f, state, chunks[1]),
-        FullScreenWidget::Battery => battery::render(f, state, chunks[1]),
-        FullScreenWidget::None => {}
+    let pw = plugin_widgets(state);
+    render_named(f, state, "header", chunks[0], &pw);
+    let name = fullscreen_widget_name(state.full_screen_widget);
+    if !render_named(f, state, name, chunks[1], &pw) {
+        let text = format!("No widget registered for '{name}'");
+        let fg = to_color(state.current_theme.fg());
+        let p = ratatui::widgets::Paragraph::new(text).style(Style::default().fg(fg));
+        f.render_widget(p, chunks[1]);
+    }
+}
+
+fn fullscreen_widget_name(w: FullScreenWidget) -> &'static str {
+    match w {
+        FullScreenWidget::Cpu => "cpu",
+        FullScreenWidget::Memory => "memory",
+        FullScreenWidget::Storage => "storage",
+        FullScreenWidget::Network => "network",
+        FullScreenWidget::Processes => "processes",
+        FullScreenWidget::DiskIO => "disk_io",
+        FullScreenWidget::Gpu => "gpu",
+        FullScreenWidget::Battery => "battery",
+        FullScreenWidget::None => "cpu",
     }
 }
 
@@ -123,9 +131,12 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
         ])
         .split(area);
 
-    header::render(f, state, chunks[0]);
+    let pw = plugin_widgets(state);
+    render_named(f, state, "header", chunks[0], &pw);
 
-    let snap = state.snapshot();
+    let Some(snap) = state.snapshot_cache() else {
+        return;
+    };
     let cpu_pct = snap.cpus.first().map(|c| c.usage).unwrap_or(0.0);
     let cpu_text = format!(
         "CPU: {:>3.0}%  |  Mem: {:.1}/{:.1}G ({:>3.0}%)",
@@ -161,5 +172,5 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
         .label(mem_text);
     f.render_widget(mem_gauge, chunks[2]);
 
-    processes::render(f, state, chunks[3]);
+    render_named(f, state, "processes", chunks[3], &pw);
 }

@@ -6,7 +6,9 @@
 
 pub mod app;
 pub mod history;
+mod palette;
 pub mod view;
+mod widget_state;
 
 pub use app::*;
 pub use view::*;

@@ -4,8 +4,11 @@
 //! here; the schema types stay independent of the runtime state.
 
 use crate::config::keybinding::Keybindings;
-use crate::layout::LayoutMode;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use xtop_layout::LayoutMode;
+// Glyph style enums are shared ecosystem-wide (kernel + widget packs).
+pub use xtop_widget_api::{ChartCharset, WidgetBorders};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AlertThresholds {
@@ -21,6 +24,58 @@ impl Default for AlertThresholds {
             mem_high: 90.0,
             disk_high: 90.0,
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Widget glyph style
+// ---------------------------------------------------------------------------
+
+/// Per-widget style overrides (key = widget name as used in layouts).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct WidgetStyle {
+    pub charset: Option<ChartCharset>,
+    pub borders: Option<WidgetBorders>,
+    /// Widget pack to render this name with (e.g. "default", "blocks").
+    pub pack: Option<String>,
+}
+
+/// Global glyph style for widgets. Drives chart markers and block borders so
+/// users can pick line/block/ascii rendering without touching code.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct UiStyle {
+    pub charset: ChartCharset,
+    pub borders: WidgetBorders,
+    pub widgets: HashMap<String, WidgetStyle>,
+    /// Widget pack used for every name without a per-widget override.
+    pub pack: Option<String>,
+}
+
+impl UiStyle {
+    /// Resolved charset for a widget (per-widget override beats global).
+    pub fn charset_for(&self, widget: &str) -> ChartCharset {
+        self.widgets
+            .get(widget)
+            .and_then(|w| w.charset)
+            .unwrap_or(self.charset)
+    }
+
+    /// Resolved border style for a widget (per-widget override beats global).
+    pub fn borders_for(&self, widget: &str) -> WidgetBorders {
+        self.widgets
+            .get(widget)
+            .and_then(|w| w.borders)
+            .unwrap_or(self.borders)
+    }
+
+    /// Resolved widget pack for a name (per-widget override beats global).
+    pub fn pack_for(&self, widget: &str) -> Option<&str> {
+        self.widgets
+            .get(widget)
+            .and_then(|w| w.pack.as_deref())
+            .or(self.pack.as_deref())
     }
 }
 
@@ -42,6 +97,10 @@ pub struct Config {
     pub alerts: AlertThresholds,
     #[serde(default)]
     pub keybindings: Keybindings,
+    /// Widget glyph style (chart charset + borders). Optional; defaults to
+    /// the classic look.
+    #[serde(default)]
+    pub style: UiStyle,
 }
 
 impl Default for Config {
@@ -54,6 +113,7 @@ impl Default for Config {
             history_points: 100,
             alerts: AlertThresholds::default(),
             keybindings: Keybindings::default(),
+            style: UiStyle::default(),
         }
     }
 }

@@ -1,12 +1,12 @@
 //! xtop CLI entry point.
 //!
 //! The binary is a thin dispatcher; the app is organized in areas:
-//! `commands`, `config`, `layout`, `plugins`, `providers`, `state`, `theme`
-//! and `ui`.
+//! `commands`, `config`, `plugins`, `providers`, `state`, `theme` and `ui`.
+//! Layouts and widget packs live in their own repos and are consumed as
+//! crates.
 
 mod commands;
 mod config;
-mod layout;
 mod plugins;
 mod providers;
 mod state;
@@ -20,11 +20,11 @@ fn print_usage() {
     eprintln!("  xtop                        Start the TUI system monitor");
     eprintln!("  xtop mcp                    Start MCP server (stdio transport) for AI agents");
     eprintln!("  xtop plugin list            List installed plugins");
-    eprintln!(
-        "  xtop plugin install <name>  Install a plugin from github.com/xtop-cli/xtop/plugins/"
-    );
+    eprintln!("  xtop plugin install <name>  Install a plugin from github.com/xtop-cli/plugins");
     eprintln!("  xtop plugin install <url>   Install a plugin from a git URL");
     eprintln!("  xtop plugin scaffold <name> Create a new plugin crate");
+    eprintln!("  xtop layout check <file>    Validate a layout JSONC file");
+    eprintln!("  xtop layout install <name>  Install a layout from github.com/xtop-cli/layouts");
 }
 
 fn main() -> anyhow::Result<()> {
@@ -39,6 +39,9 @@ fn main() -> anyhow::Result<()> {
             }
             "plugin" => {
                 return commands::plugins::plugin_command(&args);
+            }
+            "layout" => {
+                return commands::layout::layout_command(&args);
             }
             "--help" | "-h" => {
                 print_usage();

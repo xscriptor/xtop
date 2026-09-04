@@ -347,19 +347,25 @@
 
 <h3 id="starter-layouts">Starter Layouts</h3>
 
-<p>The 7 built-in layouts are embedded in the binary and written to <code>~/.config/xtop/layouts/</code> on first run.</p>
+<p>The 7 built-in layouts ship in the <code>xtop-layout</code> crate
+(<code>github.com/xtop-cli/layouts</code>, folder <code>layouts/default/</code>) and are embedded in the
+binary. On first run their JSONC sources are copied to <code>~/.config/xtop/layouts/</code> as
+editable templates. Community layouts live in <code>layouts/custom/</code> of the same repo;
+install one with <code>xtop layout install &lt;name&gt;</code> (or copy the file into
+<code>~/.config/xtop/layouts/</code>). Validate a local file with <code>xtop layout check &lt;file&gt;</code>.</p>
 
-<p>To restore them later, copy from the repository:</p>
+<p>A layout file whose <code>name</code> matches a built-in layout <strong>overrides it</strong> (e.g.
+edit <code>dashboard.jsonc</code> to customize the Dashboard). Files with new names show up as
+extra layouts.</p>
 
-<pre><code>cp -r assets/layouts/* ~/.config/xtop/layouts/</code></pre>
-
-<p><strong>Available layouts:</strong> <code>dashboard</code>, <code>vertical</code>, <code>horizontal</code>, <code>cpu_focus</code>, <code>memory_focus</code>, <code>network_focus</code>, <code>process_focus</code>.</p>
+<p><strong>Built-in layouts:</strong> <code>dashboard</code>, <code>vertical</code>, <code>horizontal</code>, <code>cpu_focus</code>, <code>memory_focus</code>, <code>network_focus</code>, <code>process_focus</code>.</p>
 
 <h3 id="cycling-order">Cycling Order</h3>
 
 <ol>
   <li>Built-in layouts (Dashboard → Vertical → Horizontal → CPU Focus → Memory Focus → Network Focus → Process Focus)</li>
-  <li>Custom layouts from <code>~/.config/xtop/layouts/</code> (in filesystem order)</li>
+  <li>Any custom layout from <code>~/.config/xtop/layouts/</code> with a new name (filesystem order)</li>
+  <li>Custom files that reuse a built-in <code>name</code> override that built-in in place (no duplicates)</li>
   <li>Wraps back to Dashboard</li>
 </ol>
 
@@ -373,6 +379,37 @@
   <li>The terminal must be at least 40×8 for any layout to render; smaller terminals show a warning.</li>
   <li>Very small terminals (under 60×14) fall back to a minimal hardcoded layout (CPU + Memory gauges + process list).</li>
 </ul>
+
+<h3 id="glyph-style">Widget glyph style</h3>
+
+<p>Los charts (CPU/Memory/Network) y los bordes de los widgets se dibujan con
+glifos por defecto (braille, bordes redondeados/unicode). Se pueden cambiar en
+<code>~/.config/xtop/config.json</code> dentro de la clave <code>style</code>:</p>
+
+<pre><code>{
+  "theme": "x",
+  "style": {
+    "charset": "block",
+    "borders": "ascii",
+    "widgets": {
+      "cpu": { "charset": "bar" },
+      "network": { "borders": "double" }
+    }
+  }
+}</code></pre>
+
+<ul>
+  <li><code>charset</code>: <code>braille</code> (por defecto), <code>dot</code>, <code>block</code>, <code>half_block</code>, <code>bar</code>.</li>
+  <li><code>borders</code>: <code>native</code> (cada widget con su borde clásico, por defecto), <code>rounded</code>, <code>double</code>, <code>plain</code>, <code>ascii</code> (<code>+-|</code>).</li>
+  <li><code>widgets</code>: override por widget (los nombres son los que usan los
+      layouts: <code>header</code>, <code>cpu</code>, <code>memory</code>, <code>storage</code>,
+      <code>network</code>, <code>processes</code>, <code>disk_io</code>, <code>battery</code>, <code>gpu</code>).</li>
+</ul>
+
+<p>Los estilos son solo de apariencia: la estructura de cada widget sigue
+siendo la que dibuja el kernel. Un widget completamente nuevo (otra lógica o
+  renderer) se puede aportar como plugin (los renderers de plugins tienen
+  precedencia sobre los built-in).</p>
 
 <hr>
 

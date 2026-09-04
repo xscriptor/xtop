@@ -1,3 +1,4 @@
+//! Theme data model and its custom (hex-string) deserializer.
 use serde::de::{self, Deserializer, MapAccess, Visitor};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -79,6 +80,6 @@ impl<'de> Deserialize<'de> for Theme {
     }
 }
 
-pub fn hex_to_rgb_pub(hex: &str) -> [u8; 3] {
+pub(crate) fn hex_to_rgb_pub(hex: &str) -> [u8; 3] {
     xtop_plugin_api::hex_to_rgb(hex)
 }

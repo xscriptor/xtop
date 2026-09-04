@@ -6,11 +6,13 @@
 
 | Repo (xtop-cli) | Rol | Contenido |
 |---|---|---|
-| `xtop` | **Kernel** — la app | workspace: `crates/xtop-core`, `xtop-tui`, `xtop` (bin). Nada más |
-| `api` | **Contratos** | workspace: `crates/plugin-api`, `effect-api`, `extension-api` → crates publicados `xtop-plugin-api`, `xtop-effect-api`, `xtop-extension-api` |
+| `xtop` | **Kernel** — la app | monocrate `src/` por áreas (commands, config, plugins, providers, state, theme, ui). Nada más |
+| `api` | **Contratos** | workspace: `crates/plugin-api`, `widget-api`, `effect-api`, `extension-api` → crates publicados `xtop-plugin-api`, `xtop-widget-api`, `xtop-effect-api`, `xtop-extension-api` |
+| `layouts` | Layouts data-driven | repo `layouts`: crate `xtop-layout` (model + loader jsonc + modos, sin UI) + `layouts/default/` (7 built-ins) + `layouts/custom/` (comunidad, instalables) |
 | `plugins` | Implementaciones de plugins | workspace `plugins/xtop-plugin-*` (1er miembro: samurai) |
 | `effects` | Efectos visuales TUI | workspace `effects/xtop-effect-*` (+ `effects-lib` compartido) |
 | `extensions` | Hooks/add-ons del kernel | workspace `extensions/xtop-extension-*` |
+| `widgets` | Packs de widgets | repo `widgets`: pack base `xtop-widgets` + packs alternativos (`packs/xtop-widget-blocks`) + `custom/` comunidad, contra `xtop-widget-api`. El kernel solo conserva engine + estado |
 
 Layout local de desarrollo (repos hermanos, como hoy):
 

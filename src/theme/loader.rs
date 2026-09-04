@@ -1,3 +1,4 @@
+//! Theme loading: embedded default theme and user themes.
 use crate::theme::Theme;
 use std::fs;
 use std::path::Path;
@@ -93,16 +94,17 @@ pub fn themes_dir() -> std::path::PathBuf {
 }
 
 pub fn load_all_themes() -> Vec<Theme> {
+    // Defaults first (index 0 = "x", stable palette position), then user
+    // files: a user theme reusing a default name overrides it in place
+    // (parity with layouts); new names are appended.
     let mut themes = vec![default_theme()];
-
-    let user_dir = themes_dir();
-    let custom = load_themes_from_dir(&user_dir);
-    for t in custom {
-        if !themes.iter().any(|existing| existing.name == t.name) {
+    for t in load_themes_from_dir(&themes_dir()) {
+        if let Some(slot) = themes.iter_mut().find(|existing| existing.name == t.name) {
+            *slot = t;
+        } else {
             themes.push(t);
         }
     }
-
     themes
 }
 

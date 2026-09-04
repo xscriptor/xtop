@@ -42,6 +42,13 @@ impl Default for SysinfoProvider {
 
 impl SysinfoProvider {
     pub fn new() -> Self {
+        // The snapshot is capped to the top-CPU processes to bound per-tick
+        // work; users can raise the cap via XTOP_MAX_PROCESSES.
+        let max_processes = std::env::var("XTOP_MAX_PROCESSES")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(DEFAULT_MAX_PROCESSES)
+            .max(1);
         let sys = System::new_with_specifics(
             RefreshKind::nothing()
                 .with_cpu(CpuRefreshKind::everything())
@@ -70,7 +77,7 @@ impl SysinfoProvider {
             prev_net_tx: HashMap::new(),
             last_refresh: Instant::now(),
             cached_sys_info: info,
-            max_processes: DEFAULT_MAX_PROCESSES,
+            max_processes,
         }
     }
 }
@@ -81,6 +88,20 @@ impl SystemDataProvider for SysinfoProvider {
         self.disks.refresh(true);
         self.networks.refresh(true);
         self.components.refresh(true);
+
+        // Record rate baselines *after* this refresh: next sample computes
+        // bytes/s as the delta since this point over `last_refresh`.
+        for (name, n) in self.networks.iter() {
+            self.prev_net_rx.insert(name.clone(), n.received());
+            self.prev_net_tx.insert(name.clone(), n.transmitted());
+        }
+        for d in self.disks.iter() {
+            let usage = d.usage();
+            let key = d.mount_point().to_string_lossy().to_string();
+            self.prev_disk_read.insert(key.clone(), usage.read_bytes);
+            self.prev_disk_write.insert(key, usage.written_bytes);
+        }
+        self.last_refresh = Instant::now();
     }
 
     fn snapshot(&self) -> SystemSnapshot {
@@ -195,18 +216,23 @@ impl SystemDataProvider for SysinfoProvider {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
+        let uptime = System::uptime();
+        // sysinfo reports process start relative to boot; expose it as epoch
+        // seconds so consumers (widgets, plugins) compare against one clock.
+        let boot_epoch = now.saturating_sub(uptime);
 
         let mut procs: Vec<ProcessInfo> = self
             .sys
             .processes()
             .iter()
             .map(|(pid, p)| {
-                let start = p.start_time();
-                let run = if start > 0 {
-                    now.saturating_sub(start)
+                let start_raw = p.start_time();
+                let start = if start_raw > 0 {
+                    boot_epoch.saturating_add(start_raw)
                 } else {
                     0
                 };
+                let run = now.saturating_sub(start);
                 ProcessInfo {
                     pid: pid.as_u32(),
                     name: p.name().to_string_lossy().to_string(),
@@ -282,12 +308,12 @@ impl SystemDataProvider for SysinfoProvider {
                 five: load.five,
                 fifteen: load.fifteen,
             },
-            uptime: System::uptime(),
+            uptime,
             disk_io: self.disk_io_inner(),
             batteries: read_batteries(),
             gpus: read_gpu_info(),
             dockers: vec![],
-            sys_info: SystemInfo::default(),
+            sys_info: self.cached_sys_info.clone(),
         }
     }
 

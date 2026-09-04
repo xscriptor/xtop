@@ -1,10 +1,8 @@
-//! UI-wide shared logic used by multiple widgets.
+//! UI-wide shared logic used by overlays and the screen.
 //!
-//! Widgets never reach outside `share` for rendering helpers; screen-level
-//! error handling also belongs here when it grows.
+//! Data widgets draw with helpers from their own pack; the kernel keeps only
+//! what its own chrome needs.
 
 mod color;
-mod format;
 
 pub use color::*;
-pub use format::*;

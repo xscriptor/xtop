@@ -1,3 +1,4 @@
+//! Plugin host: lifecycle, tick/key dispatch and capability routing.
 use std::fmt::Debug;
 use std::path::PathBuf;
 

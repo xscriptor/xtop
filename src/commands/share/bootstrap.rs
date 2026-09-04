@@ -4,12 +4,12 @@ use std::fs;
 use std::path::Path;
 
 use crate::config;
-use crate::layout;
 use crate::plugins::PluginManager;
 use crate::providers::sysinfo::SysinfoProvider;
 use crate::providers::CompositeProvider;
 use crate::state::AppState;
 use crate::theme::load_all_themes;
+use xtop_layout::{default_layouts, load_layouts_from_dir, merge_layouts};
 
 #[cfg(feature = "plugin-samurai")]
 use xtop_plugin_samurai::SamuraiPlugin;
@@ -49,10 +49,13 @@ pub fn initialize_state(cfg_dir: &Path) -> anyhow::Result<AppState> {
 
     let themes = load_all_themes();
     let cfg = config::load_config();
-    let mut builtin_layouts = layout::builtin_layouts();
-    let custom_layouts = layout::load_custom_layouts();
-    builtin_layouts.extend(custom_layouts);
-    let mut state = AppState::new(Box::new(composite), themes, cfg, builtin_layouts);
+
+    // Layouts: embedded defaults first; user files from the config dir then
+    // override defaults by name (user wins) — see `xtop_layout::merge_layouts`.
+    let layouts_dir = config::config_dir().join("layouts");
+    let layout_defs = merge_layouts(default_layouts(), load_layouts_from_dir(&layouts_dir));
+
+    let mut state = AppState::new(Box::new(composite), themes, cfg, layout_defs);
 
     // Build and register plugins, then wire their providers into the state.
     let plugin_mgr = build_plugin_manager(&mut state, cfg_dir);

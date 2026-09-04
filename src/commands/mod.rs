@@ -2,6 +2,7 @@
 //!
 //! Shared assembly and asset helpers live under [`share`].
 
+pub mod layout;
 pub mod mcp;
 pub mod plugins;
 pub mod run;

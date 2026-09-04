@@ -23,6 +23,9 @@ impl ExtensionHost for AppState {
             mgr.execute(this, plugin_id, action, params)
                 .map_err(map_plugin_error)
         })
+        .unwrap_or(Err(ExtensionError::Recoverable(
+            "plugin manager not initialized".to_string(),
+        )))
     }
 }
 

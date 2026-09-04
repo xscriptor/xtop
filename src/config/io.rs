@@ -15,7 +15,10 @@ pub fn config_path() -> PathBuf {
 pub fn load_config() -> Config {
     let path = config_path();
     if let Ok(data) = fs::read_to_string(&path) {
-        if let Ok(cfg) = serde_json::from_str::<Config>(&data) {
+        if let Ok(mut cfg) = serde_json::from_str::<Config>(&data) {
+            // Guard against a busy-looping event loop (interval 0 = spin at
+            // 100% CPU sampling the system every frame).
+            cfg.update_interval_ms = cfg.update_interval_ms.clamp(100, 3_600_000);
             return cfg;
         }
     }

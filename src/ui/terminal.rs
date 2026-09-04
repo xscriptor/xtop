@@ -1,5 +1,6 @@
+//! Terminal lifecycle: raw mode, alternate screen, mouse and paste capture.
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
+    event::{DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -10,13 +11,23 @@ use std::panic;
 pub type Tui = Terminal<CrosstermBackend<Stdout>>;
 
 pub fn init() -> io::Result<Tui> {
-    execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(
+        io::stdout(),
+        EnterAlternateScreen,
+        EnableMouseCapture,
+        EnableBracketedPaste
+    )?;
     enable_raw_mode()?;
     Terminal::new(CrosstermBackend::new(io::stdout()))
 }
 
 pub fn restore() -> io::Result<()> {
-    execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
+    execute!(
+        io::stdout(),
+        LeaveAlternateScreen,
+        DisableMouseCapture,
+        DisableBracketedPaste
+    )?;
     disable_raw_mode()?;
     Ok(())
 }

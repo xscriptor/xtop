@@ -1,3 +1,4 @@
+//! Composite data provider: kernel provider plus plugin providers.
 use xtop_plugin_api::model::*;
 use xtop_plugin_api::SystemDataProvider;
 

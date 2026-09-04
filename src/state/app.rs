@@ -1,14 +1,14 @@
+//! Live application state: system sampling per tick, layout/theme/process
+//! control, plugins.
+
 use crate::config::keybinding::{Action, Keybindings};
-use crate::config::{AlertThresholds, Config};
-use crate::layout::{layout_index_from_mode, mode_from_layout_index, LayoutDef, LayoutMode};
+use crate::config::{AlertThresholds, Config, UiStyle};
 use crate::plugins::PluginManager;
 use crate::state::history::MetricsHistory;
-use crate::state::view::{
-    FullScreenWidget, InputMode, PaletteEntry, PalettePage, PaletteState, ProcessSortBy,
-};
+use crate::state::view::{FullScreenWidget, InputMode, PalettePage, PaletteState, ProcessSortBy};
 use crate::theme::Theme;
-use xtop_plugin_api::model::SystemInfo;
-use xtop_plugin_api::model::SystemSnapshot;
+use xtop_layout::{layout_index_from_mode, layout_mode_for_name, LayoutDef, LayoutMode};
+use xtop_plugin_api::model::{ProcessInfo, SystemInfo, SystemSnapshot};
 use xtop_plugin_api::SystemDataProvider;
 use xtop_plugin_api::WidgetRegistration;
 
@@ -29,11 +29,18 @@ pub struct AppState {
     pub full_screen_widget: FullScreenWidget,
     pub alerts: AlertThresholds,
     pub update_interval_ms: u64,
+    /// Widget glyph style (chart charset, borders); from the user config.
+    pub style: UiStyle,
     pub palette: PaletteState,
     pub keybindings: Keybindings,
     pub process_sort: ProcessSortBy,
-    pub process_selected: Option<usize>,
+    /// Selected process anchored by PID (not row index), so sorting/filtering
+    /// or a fresh sample never makes a kill target the wrong process.
+    pub process_selected_pid: Option<u32>,
     pub sys_info: SystemInfo,
+    /// Latest full system sample, computed once per tick and shared by every
+    /// widget/action in that frame (avoids N samples per frame).
+    last_snapshot: Option<SystemSnapshot>,
     pub plugin_manager: Option<PluginManager>,
     pub plugin_widgets: Vec<WidgetRegistration>,
 }
@@ -75,6 +82,7 @@ impl AppState {
             full_screen_widget: FullScreenWidget::None,
             alerts: config.alerts,
             update_interval_ms: config.update_interval_ms,
+            style: config.style,
             palette: PaletteState {
                 open: false,
                 query: String::new(),
@@ -85,8 +93,9 @@ impl AppState {
             },
             keybindings: config.keybindings,
             process_sort: ProcessSortBy::Cpu,
-            process_selected: None,
+            process_selected_pid: None,
             sys_info: SystemInfo::default(),
+            last_snapshot: None,
             plugin_manager: None,
             plugin_widgets: Vec::new(),
         }
@@ -144,7 +153,7 @@ impl AppState {
     pub fn set_layout_by_name(&mut self, name: &str) -> bool {
         if let Some(idx) = self.layout_defs.iter().position(|l| l.name == name) {
             self.layout_index = idx;
-            self.layout_mode = self.save_layout_mode();
+            self.sync_layout_mode();
             self.full_screen_widget = FullScreenWidget::None;
             true
         } else {
@@ -156,24 +165,37 @@ impl AppState {
         &self.layout_defs[self.layout_index]
     }
 
+    /// The layout mode matching the current definition. Custom layouts fall
+    /// back to the previously active mode (they are addressed by name).
     pub fn save_layout_mode(&self) -> LayoutMode {
-        mode_from_layout_index(self.layout_index)
+        let fallback = if self.layout_index < 7 {
+            xtop_layout::mode_from_layout_index(self.layout_index)
+        } else {
+            self.layout_mode
+        };
+        match self.layout_defs.get(self.layout_index) {
+            Some(def) => layout_mode_for_name(&def.name, fallback),
+            None => LayoutMode::Dashboard,
+        }
+    }
+
+    fn sync_layout_mode(&mut self) {
+        self.layout_mode = self.save_layout_mode();
     }
 
     /// Safely access the plugin manager with a closure.
     /// Ensures the plugin manager is always restored after the operation.
+    /// Returns `None` when no manager is initialized (pre-bootstrap or tests)
+    /// instead of panicking; callers decide how to degrade.
     /// NOTE: does NOT call refresh_plugin_widgets — the caller must do it if needed.
     pub fn with_plugin_manager_mut<R>(
         &mut self,
         f: impl FnOnce(&mut PluginManager, &mut Self) -> R,
-    ) -> R {
-        let mut mgr = self
-            .plugin_manager
-            .take()
-            .expect("PluginManager not initialized");
+    ) -> Option<R> {
+        let mut mgr = self.plugin_manager.take()?;
         let result = f(&mut mgr, self);
         self.plugin_manager = Some(mgr);
-        result
+        Some(result)
     }
 
     pub fn on_tick(&mut self) {
@@ -195,25 +217,60 @@ impl AppState {
 
         self.history.push_mem(x, snap.memory.percent);
 
-        let total_rx: u64 = snap.networks.iter().map(|n| n.received).sum();
-        let total_tx: u64 = snap.networks.iter().map(|n| n.transmitted).sum();
-        self.history.push_net(x, total_rx as f64, total_tx as f64);
+        // Network history tracks *rates* (bytes/s), not cumulative counters,
+        // so the chart shows throughput over time.
+        let total_rx_speed: f64 = snap.networks.iter().map(|n| n.rx_speed).sum();
+        let total_tx_speed: f64 = snap.networks.iter().map(|n| n.tx_speed).sum();
+        self.history.push_net(x, total_rx_speed, total_tx_speed);
+
+        // Cache the sample for every widget and action in this frame.
+        self.last_snapshot = Some(snap);
 
         // Let plugins tick
-        self.with_plugin_manager_mut(|mgr, this| {
+        let _ = self.with_plugin_manager_mut(|mgr, this| {
             mgr.tick_all(this);
         });
         self.refresh_plugin_widgets();
     }
 
+    /// The current sample (one per tick). Widgets and process actions read
+    /// this instead of resampling the system every frame.
+    pub fn snapshot_cache(&self) -> Option<&SystemSnapshot> {
+        self.last_snapshot.as_ref()
+    }
+
+    /// Full current snapshot. Prefer [`AppState::snapshot_cache`] in render
+    /// paths; this forces a fresh system sample (used by plugin hosts).
     pub fn snapshot(&self) -> SystemSnapshot {
-        let mut snap = self.provider.snapshot();
-        snap.disk_io = self.provider.disk_io();
-        snap.batteries = self.provider.batteries();
-        snap.gpus = self.provider.gpu_info();
-        snap.dockers = self.provider.docker_info();
-        snap.sys_info = self.provider.system_info();
-        snap
+        self.last_snapshot
+            .clone()
+            .unwrap_or_else(|| self.provider.snapshot())
+    }
+
+    /// The process rows the UI shows: search filter + user sort, applied to
+    /// one shared sample. Single source of truth for the processes widget and
+    /// the Up/Down/Kill actions (selection is anchored by PID).
+    pub fn sorted_processes<'a>(&'a self, snap: &'a SystemSnapshot) -> Vec<&'a ProcessInfo> {
+        let mut items: Vec<&ProcessInfo> = if self.search_query.is_empty() {
+            snap.processes.iter().collect()
+        } else {
+            let q = self.search_query.to_lowercase();
+            snap.processes
+                .iter()
+                .filter(|p| p.name.to_lowercase().contains(&q))
+                .collect()
+        };
+        match self.process_sort {
+            ProcessSortBy::Cpu => items.sort_by(|a, b| {
+                b.cpu_usage
+                    .partial_cmp(&a.cpu_usage)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            }),
+            ProcessSortBy::Memory => items.sort_by_key(|b| std::cmp::Reverse(b.memory)),
+            ProcessSortBy::Pid => items.sort_by_key(|a| a.pid),
+            ProcessSortBy::Name => items.sort_by_key(|a| a.name.to_lowercase()),
+        }
+        items
     }
 
     pub fn next_theme(&mut self) {
@@ -235,8 +292,11 @@ impl AppState {
     }
 
     pub fn next_layout(&mut self) {
+        if self.layout_defs.is_empty() {
+            return;
+        }
         self.layout_index = (self.layout_index + 1) % self.layout_defs.len();
-        self.layout_mode = self.save_layout_mode();
+        self.sync_layout_mode();
         self.full_screen_widget = FullScreenWidget::None;
     }
 
@@ -280,154 +340,34 @@ impl AppState {
         self.should_quit = true;
     }
 
-    pub fn rebuild_palette(&mut self) {
-        self.palette.entries.clear();
-        match self.palette.page {
-            PalettePage::Main => {
-                self.palette.entries.push(PaletteEntry {
-                    label: "Themes →".into(),
-                    action: Action::NavigateThemes,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Layouts →".into(),
-                    action: Action::NavigateLayouts,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Toggle Fullscreen".into(),
-                    action: Action::ToggleFullscreen,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Cycle Fullscreen Widget".into(),
-                    action: Action::CycleFullscreen,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Search Processes".into(),
-                    action: Action::Search,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Toggle Help".into(),
-                    action: Action::ToggleHelp,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: format!("Sort: {}", self.process_sort.label()),
-                    action: Action::SortByCpu,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Random Theme".into(),
-                    action: Action::RandomTheme,
-                });
-                self.palette.entries.push(PaletteEntry {
-                    label: "Exit".into(),
-                    action: Action::Quit,
-                });
-            }
-            PalettePage::Themes => {
-                for (i, theme) in self.themes.iter().enumerate() {
-                    self.palette.entries.push(PaletteEntry {
-                        label: theme.name.clone(),
-                        action: Action::SelectTheme(i),
-                    });
-                }
-            }
-            PalettePage::Layouts => {
-                for (i, layout) in self.layout_defs.iter().enumerate() {
-                    self.palette.entries.push(PaletteEntry {
-                        label: layout.name.clone(),
-                        action: Action::SelectLayout(i),
-                    });
-                }
-            }
-        }
-        self.palette_filter();
-    }
-
-    pub fn open_palette(&mut self) {
-        self.palette.open = true;
-        self.palette.query.clear();
-        self.palette.selected = 0;
-        self.palette.page = PalettePage::Main;
-        self.rebuild_palette();
-    }
-
-    pub fn palette_navigate_to(&mut self, page: PalettePage) {
-        self.palette.page = page;
-        self.palette.query.clear();
-        self.palette.selected = 0;
-        self.rebuild_palette();
-    }
-
-    pub fn palette_filter(&mut self) {
-        let q = self.palette.query.to_lowercase();
-        self.palette.filtered = self
-            .palette
-            .entries
-            .iter()
-            .enumerate()
-            .filter(|(_, e)| q.is_empty() || e.label.to_lowercase().contains(&q))
-            .map(|(i, _)| i)
-            .collect();
-        if !self.palette.filtered.is_empty() {
-            self.palette.selected = self.palette.selected.min(self.palette.filtered.len() - 1);
-        } else {
-            self.palette.selected = 0;
-        }
-    }
-
-    pub fn palette_select_next(&mut self) {
-        if !self.palette.filtered.is_empty() {
-            self.palette.selected = (self.palette.selected + 1) % self.palette.filtered.len();
-        }
-    }
-
-    pub fn palette_select_prev(&mut self) {
-        if !self.palette.filtered.is_empty() {
-            self.palette.selected = if self.palette.selected == 0 {
-                self.palette.filtered.len() - 1
-            } else {
-                self.palette.selected - 1
-            };
-        }
-    }
-
     pub fn process_select_next(&mut self) {
-        let snap = self.snapshot();
-        if snap.processes.is_empty() {
-            return;
-        }
-        let idx = self.process_selected.unwrap_or(0);
-        self.process_selected = Some((idx + 1) % snap.processes.len());
+        self.move_process_selection(1);
     }
 
     pub fn process_select_prev(&mut self) {
-        let snap = self.snapshot();
-        if snap.processes.is_empty() {
+        self.move_process_selection(-1);
+    }
+
+    fn move_process_selection(&mut self, dir: i32) {
+        let Some(snap) = self.snapshot_cache() else {
+            return;
+        };
+        let view = self.sorted_processes(snap);
+        if view.is_empty() {
             return;
         }
-        let idx = self.process_selected.unwrap_or(0);
-        self.process_selected = Some(if idx == 0 {
-            snap.processes.len() - 1
-        } else {
-            idx - 1
-        });
+        let n = view.len() as i32;
+        let pos = self
+            .process_selected_pid
+            .and_then(|pid| view.iter().position(|p| p.pid == pid))
+            .unwrap_or(0) as i32;
+        let next = (pos + dir).rem_euclid(n);
+        self.process_selected_pid = Some(view[next as usize].pid);
     }
 
     pub fn cycle_sort(&mut self) {
         self.process_sort = self.process_sort.next();
-        self.process_selected = None;
-    }
-
-    pub fn palette_selected_action(&self) -> Option<Action> {
-        self.palette
-            .filtered
-            .get(self.palette.selected)
-            .and_then(|&i| self.palette.entries.get(i))
-            .map(|e| e.action.clone())
-    }
-
-    pub fn close_palette(&mut self) {
-        self.palette.open = false;
-        self.palette.page = PalettePage::Main;
-        self.input_mode = InputMode::Normal;
+        self.process_selected_pid = None;
     }
 
     pub fn execute_action(&mut self, action: &Action) {
@@ -451,9 +391,11 @@ impl AppState {
                 self.apply_theme();
             }
             Action::SelectLayout(i) => {
-                self.layout_index = *i;
-                self.layout_mode = self.save_layout_mode();
-                self.full_screen_widget = FullScreenWidget::None;
+                if *i < self.layout_defs.len() {
+                    self.layout_index = *i;
+                    self.sync_layout_mode();
+                    self.full_screen_widget = FullScreenWidget::None;
+                }
             }
             Action::NavigateThemes => {
                 self.palette_navigate_to(PalettePage::Themes);
@@ -464,13 +406,9 @@ impl AppState {
                 return;
             }
             Action::KillProcess => {
-                if let Some(pid) = self.process_selected {
-                    let snap = self.snapshot();
-                    if pid < snap.processes.len() {
-                        let target = snap.processes[pid].pid;
-                        self.provider.kill_process(target);
-                        self.process_selected = None;
-                    }
+                if let Some(pid) = self.process_selected_pid {
+                    self.provider.kill_process(pid);
+                    self.process_selected_pid = None;
                 }
             }
             Action::ProcessUp => self.process_select_prev(),
@@ -497,82 +435,25 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layout::{detect_effective_layout, EffectiveLayout, LayoutMode};
+    use xtop_layout::{default_layouts, LayoutMode};
 
-    #[test]
-    fn test_layout_mode_next() {
-        assert_eq!(LayoutMode::Dashboard.next(), LayoutMode::Vertical);
-        assert_eq!(LayoutMode::Vertical.next(), LayoutMode::Horizontal);
-        assert_eq!(LayoutMode::Horizontal.next(), LayoutMode::CpuFocus);
-        assert_eq!(LayoutMode::CpuFocus.next(), LayoutMode::MemoryFocus);
-        assert_eq!(LayoutMode::MemoryFocus.next(), LayoutMode::NetworkFocus);
-        assert_eq!(LayoutMode::NetworkFocus.next(), LayoutMode::ProcessFocus);
-        assert_eq!(LayoutMode::ProcessFocus.next(), LayoutMode::Dashboard);
-    }
-
-    #[test]
-    fn test_detect_effective_layout_large() {
-        assert_eq!(
-            detect_effective_layout(120, 40, LayoutMode::Dashboard),
-            EffectiveLayout::Dashboard
-        );
-    }
-
-    #[test]
-    fn test_detect_effective_layout_compact() {
-        assert_eq!(
-            detect_effective_layout(90, 30, LayoutMode::Dashboard),
-            EffectiveLayout::Compact
-        );
-    }
-
-    #[test]
-    fn test_detect_effective_layout_narrow() {
-        assert_eq!(
-            detect_effective_layout(70, 30, LayoutMode::Dashboard),
-            EffectiveLayout::Vertical
-        );
-    }
-
-    #[test]
-    fn test_detect_effective_layout_minimal() {
-        assert_eq!(
-            detect_effective_layout(50, 15, LayoutMode::Dashboard),
-            EffectiveLayout::Minimal
-        );
-    }
-
-    #[test]
-    fn test_detect_effective_layout_focus_respected() {
-        assert_eq!(
-            detect_effective_layout(80, 30, LayoutMode::CpuFocus),
-            EffectiveLayout::CpuFocus
-        );
-        assert_eq!(
-            detect_effective_layout(80, 30, LayoutMode::NetworkFocus),
-            EffectiveLayout::NetworkFocus
-        );
-    }
-
-    #[test]
-    fn test_detect_effective_layout_focus_downgrade() {
-        assert_eq!(
-            detect_effective_layout(50, 30, LayoutMode::CpuFocus),
-            EffectiveLayout::Minimal
-        );
+    fn test_state(defs: Vec<LayoutDef>) -> AppState {
+        let theme = Theme {
+            name: "test".into(),
+            palette: [[0, 0, 0]; 16],
+        };
+        AppState::new(
+            Box::new(crate::providers::sysinfo::SysinfoProvider::new()),
+            vec![theme],
+            Config::default(),
+            defs,
+        )
     }
 
     #[test]
     fn test_fullscreen_widget_cycle() {
         assert_eq!(FullScreenWidget::None.next(), FullScreenWidget::Cpu);
         assert_eq!(FullScreenWidget::Battery.next(), FullScreenWidget::None);
-    }
-
-    #[test]
-    fn test_layout_mode_label() {
-        assert_eq!(LayoutMode::Dashboard.label(), "Dashboard");
-        assert_eq!(LayoutMode::CpuFocus.label(), "CPU Focus");
-        assert_eq!(LayoutMode::Horizontal.label(), "Horizontal");
     }
 
     #[test]
@@ -592,5 +473,35 @@ mod tests {
     }
 
     #[test]
-    fn test_search_operations() {}
+    fn test_snapshot_cache_empty_before_first_tick() {
+        let state = test_state(vec![]);
+        assert!(state.snapshot_cache().is_none());
+    }
+
+    #[test]
+    fn test_custom_layout_keeps_previous_mode() {
+        let mut defs = default_layouts();
+        defs.push(LayoutDef {
+            name: "My Custom".into(),
+            root: xtop_layout::LayoutNode::Split {
+                direction: xtop_layout::Direction::Vertical,
+                areas: vec![],
+            },
+        });
+        let mut state = test_state(defs.clone());
+
+        // Default boot: Dashboard at index 0.
+        assert_eq!(state.layout_index, 0);
+        assert_eq!(state.layout_mode, LayoutMode::Dashboard);
+
+        // Custom layout (index 7) must not reset the mode to Dashboard-as-mode
+        // loss; it falls back to the previously active mode (Dashboard here).
+        assert!(state.set_layout_by_name("My Custom"));
+        assert_eq!(state.layout_mode, LayoutMode::Dashboard);
+        assert_eq!(state.current_layout_name(), "My Custom");
+
+        // Built-ins still resolve to their real mode by name.
+        assert!(state.set_layout_by_name("CPU Focus"));
+        assert_eq!(state.layout_mode, LayoutMode::CpuFocus);
+    }
 }

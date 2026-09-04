@@ -3,7 +3,6 @@
 use std::fs;
 
 use crate::config;
-use crate::config::Config;
 use crate::state::AppState;
 
 const DEFAULT_THEMES: &[(&str, &str)] = &[
@@ -38,84 +37,55 @@ const DEFAULT_THEMES: &[(&str, &str)] = &[
     ),
 ];
 
-const DEFAULT_LAYOUTS: &[(&str, &str)] = &[
-    (
-        "dashboard",
-        include_str!("../../../assets/layouts/dashboard.jsonc"),
-    ),
-    (
-        "vertical",
-        include_str!("../../../assets/layouts/vertical.jsonc"),
-    ),
-    (
-        "horizontal",
-        include_str!("../../../assets/layouts/horizontal.jsonc"),
-    ),
-    (
-        "cpu_focus",
-        include_str!("../../../assets/layouts/cpu_focus.jsonc"),
-    ),
-    (
-        "memory_focus",
-        include_str!("../../../assets/layouts/memory_focus.jsonc"),
-    ),
-    (
-        "network_focus",
-        include_str!("../../../assets/layouts/network_focus.jsonc"),
-    ),
-    (
-        "process_focus",
-        include_str!("../../../assets/layouts/process_focus.jsonc"),
-    ),
-];
+/// Version of the seeded asset templates. Bumped when the shipped defaults
+/// change so existing installs receive the new templates (without ever
+/// clobbering files the user has edited).
+const ASSETS_VERSION: &str = "1";
 
-pub fn config_dir() -> std::path::PathBuf {
-    crate::config::config_dir()
-}
-
+/// Write shipped defaults (themes and layouts) into the user config dir.
+///
+/// Files are only created when missing: user edits are never clobbered. The
+/// defaults are the examples users copy to customize; the actual fallbacks
+/// always live compiled into the binary/crates.
 pub fn ensure_default_assets() {
-    let theme_assets: &[(&str, &str)] = DEFAULT_THEMES;
-    let layout_assets: &[(&str, &str)] = DEFAULT_LAYOUTS;
-
     let dir = crate::theme::themes_dir();
-    if !dir.join(".xtop_initialized").exists() {
-        fs::create_dir_all(&dir).ok();
-        for (name, content) in theme_assets {
-            let path = dir.join(format!("{name}.jsonc"));
-            if !path.exists() {
-                fs::write(&path, content).ok();
-            }
-        }
-        fs::write(dir.join(".xtop_initialized"), "").ok();
-    }
-
-    let dir = crate::layout::layouts_dir();
-    if !dir.join(".xtop_initialized").exists() {
-        fs::create_dir_all(&dir).ok();
-        for (name, content) in layout_assets {
-            let path = dir.join(format!("{name}.jsonc"));
-            if !path.exists() {
-                fs::write(&path, content).ok();
-            }
-        }
-        fs::write(dir.join(".xtop_initialized"), "").ok();
-    }
+    seed_assets(&dir, DEFAULT_THEMES);
+    let dir = crate::config::config_dir().join("layouts");
+    seed_assets(&dir, xtop_layout::default_layout_sources);
 }
 
+fn seed_assets(dir: &std::path::Path, sources: &[(&str, &str)]) {
+    let marker = dir.join(".xtop_initialized");
+    let up_to_date = fs::read_to_string(&marker)
+        .map(|v| v.trim() == ASSETS_VERSION)
+        .unwrap_or(false);
+    if up_to_date {
+        return;
+    }
+    fs::create_dir_all(dir).ok();
+    for (name, content) in sources {
+        let path = dir.join(format!("{name}.jsonc"));
+        if !path.exists() {
+            fs::write(&path, content).ok();
+        }
+    }
+    fs::write(marker, ASSETS_VERSION).ok();
+}
+
+/// Persist the runtime state into the user config file.
+///
+/// Existing user values (`history_points`, update interval when untouched,
+/// keybindings, alerts) are preserved: only the fields the runtime owns are
+/// overwritten.
 pub fn save_config(state: &AppState) {
-    let layout_name = if state.layout_index < state.layout_defs.len() {
-        state.layout_defs[state.layout_index].name.clone()
-    } else {
-        String::new()
-    };
-    let cfg = Config {
-        theme: state.current_theme.name.clone(),
-        layout_mode: state.save_layout_mode(),
-        layout_name,
-        update_interval_ms: state.update_interval_ms,
-        history_points: 100,
-        alerts: state.alerts,
-        keybindings: state.keybindings.clone(),
-    };
+    let mut cfg = config::load_config();
+    cfg.theme = state.current_theme.name.clone();
+    if let Some(def) = state.layout_defs.get(state.layout_index) {
+        cfg.layout_name = def.name.clone();
+    }
+    cfg.layout_mode = state.layout_mode;
+    cfg.update_interval_ms = state.update_interval_ms;
+    cfg.alerts = state.alerts;
+    cfg.keybindings = state.keybindings.clone();
     let _ = config::save_config(&cfg);
 }

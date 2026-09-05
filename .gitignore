@@ -3,5 +3,6 @@
 # Local development overrides (see .cargo/config.toml inside)
 /.cargo
 
-# Scaffolded plugins (dev-time tooling)
+# Scaffolded plugins and widget packs (dev-time tooling)
 /plugins-dev
+/widgets-dev

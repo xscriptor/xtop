@@ -1,9 +1,10 @@
 {
     // Lahabana -- Near-black bg, green-yellow-green palette
     "name": "lahabana",
+    "background": "#19191a",
+    "foreground": "#f7f1ff",
     "palette": [
-        "#19191a", "#fc618d", "#7bd88f", "#e5ff9d", "#fd9353", "#948ae3", "#5ad4e6",
-        "#f7f1ff", "#19191a", "#fc618d", "#7bd88f", "#e5ff9d", "#fd9353", "#948ae3",
-        "#5ad4e6", "#f7f1ff"
+        "#19191a", "#fc618d", "#7bd88f", "#e5ff9d", "#fd9353", "#948ae3", "#5ad4e6", "#f7f1ff",
+        "#19191a", "#fc618d", "#7bd88f", "#e5ff9d", "#fd9353", "#948ae3", "#5ad4e6", "#f7f1ff"
     ]
 }

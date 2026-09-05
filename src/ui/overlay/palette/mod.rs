@@ -1,15 +1,19 @@
 //! Command palette widget: themes/layouts quick selection.
+//!
+//! Kernel-owned chrome (DR-UX3): title and border use the accent role and
+//! the border glyph set follows the global `style.borders` choice, so the
+//! palette keeps the same look as widget frames and the help overlay.
 
 use crate::state::{AppState, PalettePage};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
-use xtop_widget_api::glyph::to_color;
+use xtop_widget_api::glyph::{border_for, to_color};
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let fg = to_color(*state.current_theme.fg());
     let bg = to_color(*state.current_theme.bg());
-    let accent = to_color(state.current_theme.palette[6]);
+    let accent = to_color(*state.current_theme.accent());
 
     let popup_width = (area.width as f64 * 0.6).min(60.0) as u16;
     let popup_height = (area.height as f64 * 0.6).min(30.0) as u16;
@@ -25,8 +29,12 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
 
     let title = state.palette.title();
     let block = Block::default()
-        .title(title)
+        .title(Line::from(vec![Span::styled(
+            format!(" {title} "),
+            Style::default().fg(accent).add_modifier(Modifier::BOLD),
+        )]))
         .borders(Borders::ALL)
+        .border_set(border_for(state.style.borders))
         .border_style(Style::default().fg(accent))
         .style(Style::default().fg(fg).bg(bg));
     let inner = block.inner(popup);
@@ -56,7 +64,11 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     };
     let input = Paragraph::new(input_text.as_str())
         .style(Style::default().fg(accent).bg(bg))
-        .block(Block::default().borders(Borders::ALL));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(accent)),
+        );
     f.render_widget(input, search_area);
 
     let list_area = Rect {

@@ -23,6 +23,10 @@ fn print_usage() {
     eprintln!("  xtop plugin install <name>  Install a plugin from github.com/xtop-cli/plugins");
     eprintln!("  xtop plugin install <url>   Install a plugin from a git URL");
     eprintln!("  xtop plugin scaffold <name> Create a new plugin crate");
+    eprintln!("  xtop widget list            List installed widget packs");
+    eprintln!("  xtop widget install <name>  Install a pack from github.com/xtop-cli/widgets");
+    eprintln!("  xtop widget install <url|path>  Install a widget pack from a git URL or path");
+    eprintln!("  xtop widget scaffold <name> Create a new single-widget pack crate");
     eprintln!("  xtop layout check <file>    Validate a layout JSONC file");
     eprintln!("  xtop layout install <name>  Install a layout from github.com/xtop-cli/layouts");
 }
@@ -39,6 +43,9 @@ fn main() -> anyhow::Result<()> {
             }
             "plugin" => {
                 return commands::plugins::plugin_command(&args);
+            }
+            "widget" => {
+                return commands::widget::widget_command(&args);
             }
             "layout" => {
                 return commands::layout::layout_command(&args);

@@ -1,9 +1,10 @@
 {
     // Paris -- Deep purple bg, pastel accents
     "name": "paris",
+    "background": "#1a0a30",
+    "foreground": "#f7f1ff",
     "palette": [
-        "#1a0a30", "#fc618d", "#7bd88f", "#fce566", "#a3f3ff", "#c4bdff", "#a3f3ff",
-        "#f7f1ff", "#c4bdff", "#fc618d", "#7bd88f", "#fce566", "#a3f3ff", "#c4bdff",
-        "#a3f3ff", "#f7f1ff"
+        "#1a0a30", "#fc618d", "#7bd88f", "#fce566", "#a3f3ff", "#c4bdff", "#a3f3ff", "#1a0a30",
+        "#c4bdff", "#fc618d", "#7bd88f", "#fce566", "#a3f3ff", "#c4bdff", "#a3f3ff", "#f7f1ff"
     ]
 }

@@ -10,6 +10,13 @@ pub fn read_cpu_governor(_cpu_id: usize) -> String {
     String::new()
 }
 
+/// Per-core temperatures: no OS-specific source on fallback targets; keep
+/// `CpuInfo::temp_c` at `None` (the aggregate `SystemSnapshot::cpu_temp`
+/// still flows from sysinfo `Components`).
+pub fn read_core_temps(logical_cpus: usize) -> Vec<Option<f32>> {
+    vec![None; logical_cpus]
+}
+
 pub fn read_mount_options() -> HashMap<String, String> {
     HashMap::new()
 }
@@ -28,4 +35,24 @@ pub fn read_thread_count(_pid: sysinfo::Pid) -> u64 {
 
 pub fn read_gpu_info_from_sysfs() -> Vec<GpuInfo> {
     Vec::new()
+}
+
+/// Package power (RAPL): no source on fallback targets; the provider keeps
+/// `SystemInfo::package_power_w` at `None` (widgets hide the readout).
+pub struct RaplPower;
+
+impl Default for RaplPower {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl RaplPower {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn sample(&mut self) -> Option<f64> {
+        None
+    }
 }

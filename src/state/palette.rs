@@ -38,7 +38,11 @@ impl AppState {
                     action: Action::ToggleHelp,
                 });
                 self.palette.entries.push(PaletteEntry {
-                    label: format!("Sort: {}", self.process_sort.label()),
+                    label: format!(
+                        "Sort: {} {}",
+                        self.process_sort.label(),
+                        if self.process_sort_desc { "▼" } else { "▲" }
+                    ),
                     action: Action::SortByCpu,
                 });
                 self.palette.entries.push(PaletteEntry {

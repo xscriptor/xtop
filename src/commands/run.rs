@@ -69,7 +69,7 @@ pub fn run() -> anyhow::Result<()> {
     loop {
         let tick_rate = Duration::from_millis(state.update_interval_ms.max(100));
         terminal.draw(|f| {
-            ui::render(f, &state);
+            ui::render(f, &mut state);
             // Effects transform the fully rendered frame (after layout,
             // before flush); see the `xtop-effect-api` host contract.
             effect_host.apply(f.buffer_mut());

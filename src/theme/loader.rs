@@ -1,24 +1,33 @@
 //! Theme loading: embedded default theme and user themes.
+//!
+//! Every theme is contrast-normalized right after parsing (UX8.2): the
+//! shipped/user files always stay canonical, the in-memory `Theme` is the
+//! guaranteed-legible runtime view (see `contrast.rs` for the role floors).
 use crate::theme::Theme;
 use std::fs;
 use std::path::Path;
 
-fn make_theme(name: &str, colors: [&str; 16]) -> Theme {
+fn make_theme(name: &str, background: &str, foreground: &str, colors: [&str; 16]) -> Theme {
     let mut palette = [[0u8; 3]; 16];
     for (i, h) in colors.iter().enumerate() {
         palette[i] = crate::theme::hex_to_rgb_pub(h);
     }
     Theme {
         name: name.to_string(),
+        background: crate::theme::hex_to_rgb_pub(background),
+        foreground: crate::theme::hex_to_rgb_pub(foreground),
         palette,
     }
 }
 
 fn default_theme() -> Theme {
+    // Canonical "x" (owner palette source; mirrors assets/themes/x.jsonc).
     make_theme(
         "x",
+        "#050505",
+        "#f7f1ff",
         [
-            "#050505", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3", "#5ad4e6", "#f7f1ff",
+            "#0a0a0a", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3", "#5ad4e6", "#f7f1ff",
             "#0f0f0f", "#fc618d", "#7bd88f", "#fce566", "#fd9353", "#948ae3", "#5ad4e6", "#f7f1ff",
         ],
     )
@@ -55,7 +64,9 @@ pub(crate) fn strip_jsonc_comments(input: &str) -> String {
 fn load_theme_from_file(path: &Path) -> Option<Theme> {
     let data = fs::read_to_string(path).ok()?;
     let cleaned = strip_jsonc_comments(&data);
-    serde_json::from_str::<Theme>(&cleaned).ok()
+    let mut theme = serde_json::from_str::<Theme>(&cleaned).ok()?;
+    crate::theme::contrast::normalize(&mut theme);
+    Some(theme)
 }
 
 fn load_themes_from_dir(dir: &Path) -> Vec<Theme> {
@@ -89,8 +100,10 @@ pub fn themes_dir() -> std::path::PathBuf {
 pub fn load_all_themes() -> Vec<Theme> {
     // Defaults first (index 0 = "x", stable palette position), then user
     // files: a user theme reusing a default name overrides it in place
-    // (parity with layouts); new names are appended.
+    // (parity with layouts); new names are appended. Every theme is
+    // contrast-normalized at load.
     let mut themes = vec![default_theme()];
+    crate::theme::contrast::normalize(&mut themes[0]);
     for t in load_themes_from_dir(&themes_dir()) {
         if let Some(slot) = themes.iter_mut().find(|existing| existing.name == t.name) {
             *slot = t;
@@ -103,7 +116,9 @@ pub fn load_all_themes() -> Vec<Theme> {
 
 #[cfg(test)]
 pub fn builtin_themes() -> Vec<Theme> {
-    vec![default_theme()]
+    let mut themes = vec![default_theme()];
+    crate::theme::contrast::normalize(&mut themes[0]);
+    themes
 }
 
 #[cfg(test)]
@@ -114,7 +129,10 @@ mod tests {
     fn test_default_theme() {
         let t = default_theme();
         assert_eq!(t.name, "x");
+        // Explicit background/foreground pair (canonical "x").
         assert_eq!(t.bg(), &[5, 5, 5]);
+        assert_eq!(t.fg(), &[247, 241, 255]);
+        assert_eq!(t.palette[0], [10, 10, 10]);
     }
 
     #[test]

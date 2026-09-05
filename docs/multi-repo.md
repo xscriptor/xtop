@@ -13,7 +13,7 @@
 | `api` | **Contracts** | workspace with the four contract crates: `xtop-plugin-api` (data model, plugin/host traits, `AlertThresholds`, `PluginWidget`), `xtop-widget-api` (pack registration + glyph helpers), `xtop-extension-api` (extension host), `xtop-effect-api` (frame effects) |
 | `xtop` | **Kernel** | the app: single-crate binary, `src/` by areas (commands, config, plugins, providers, state, theme, ui). Consumes every other repo |
 | `widgets` | **Renderers** | packs of widget renderers against `xtop-widget-api`: base pack `xtop-widgets` + alternative packs (`packs/xtop-widget-blocks`) + `custom/` community |
-| `layouts` | **Arrangement** | `xtop-layout` crate: data-driven layout model + JSONC loader + layout modes, plus `layouts/default/` (7 built-ins) and `layouts/custom/` (community, installable) |
+| `layouts` | **Arrangement** | `xtop-layout` crate: data-driven layout model + JSONC loader + layout modes, plus `layouts/default/` (7 mode-bound layouts + 3 `detail_*` preset extras) and `layouts/custom/` (community, installable) |
 | `plugins` | **Functionality** | plugin implementations against `xtop-plugin-api` (first member: `xtop-plugin-samurai`) |
 | `extensions` | **Kernel hooks** | server-style extensions against `xtop-extension-api` (`xtop-extension-mcp`) |
 | `effects` | **Animation** | frame effects against `xtop-effect-api` (`xtop-effect-fade`: 500 ms fade-in from black) |

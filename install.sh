@@ -8,7 +8,7 @@ set -euo pipefail
 APP_NAME="xtop"
 REPO_URL="https://github.com/xtop-cli/xtop.git"
 INSTALL_DIR="/usr/local/bin"
-VERSION="0.3.0"
+VERSION="0.1.0"
 
 # Colors
 GREEN='\033[0;32m'

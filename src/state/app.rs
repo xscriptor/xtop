@@ -5,6 +5,8 @@ use crate::config::keybinding::{Action, Keybindings};
 use crate::config::{Config, UiStyle};
 use crate::plugins::PluginManager;
 use crate::state::history::MetricsHistory;
+use crate::state::proc_history::ProcessCpuHistory;
+use crate::state::users::Users;
 use crate::state::view::{FullScreenWidget, InputMode, PalettePage, PaletteState, ProcessSortBy};
 use crate::theme::Theme;
 use xtop_layout::{layout_index_from_mode, layout_mode_for_name, LayoutDef, LayoutMode};
@@ -14,6 +16,12 @@ use xtop_plugin_api::{AlertThresholds, PluginWidget, SystemDataProvider};
 pub struct AppState {
     provider: Box<dyn SystemDataProvider>,
     pub history: MetricsHistory,
+    /// Per-process CPU samples for braille sparks (UX9.1): bounded map fed
+    /// every tick from the visible process list.
+    pub proc_cpu_history: ProcessCpuHistory,
+    /// Uid → login-name table for the processes view (UX9.1), from
+    /// `/etc/passwd` on unix (empty elsewhere → numeric fallback).
+    pub(crate) users: Users,
     pub should_quit: bool,
     pub layout_mode: LayoutMode,
     pub layout_index: usize,
@@ -33,6 +41,10 @@ pub struct AppState {
     pub palette: PaletteState,
     pub keybindings: Keybindings,
     pub process_sort: ProcessSortBy,
+    /// Direction of the active process sort: `true` = descending (largest
+    /// first). Boots descending to keep the classic CPU%/Mem order; the sort
+    /// key toggles it per column before advancing (see [`AppState::cycle_sort`]).
+    pub process_sort_desc: bool,
     /// Selected process anchored by PID (not row index), so sorting/filtering
     /// or a fresh sample never makes a kill target the wrong process.
     pub process_selected_pid: Option<u32>,
@@ -42,6 +54,18 @@ pub struct AppState {
     last_snapshot: Option<SystemSnapshot>,
     pub plugin_manager: Option<PluginManager>,
     pub plugin_widgets: Vec<PluginWidget>,
+    /// Layout `options` of the widget currently being rendered (DR-UX1).
+    ///
+    /// The render engine sets this right before each pack-widget render call
+    /// (from the layout node that named the widget) and resets it to `None`
+    /// right after; the `xtop_widget_api::WidgetState::widget_options`
+    /// implementation reads it. It is `None` outside a render call and for
+    /// widget instances whose layout node carries no `options` object, so
+    /// behavior is byte-identical to the pre-DR-UX1 rendering. Plugin widget
+    /// renderers see `HostState` (not `WidgetState`) and never observe this
+    /// field; it is kernel-internal plumbing and never persists across
+    /// frames.
+    pub(crate) active_widget_options: Option<serde_json::Value>,
 }
 
 impl AppState {
@@ -67,6 +91,8 @@ impl AppState {
         Self {
             provider,
             history: MetricsHistory::new(config.history_points),
+            proc_cpu_history: ProcessCpuHistory::new(),
+            users: Users::load(),
             should_quit: false,
             layout_mode: config.layout_mode,
             layout_index,
@@ -92,11 +118,13 @@ impl AppState {
             },
             keybindings: config.keybindings,
             process_sort: ProcessSortBy::Cpu,
+            process_sort_desc: true,
             process_selected_pid: None,
             sys_info: SystemInfo::default(),
             last_snapshot: None,
             plugin_manager: None,
             plugin_widgets: Vec::new(),
+            active_widget_options: None,
         }
     }
 
@@ -221,6 +249,20 @@ impl AppState {
         let total_tx_speed: f64 = snap.networks.iter().map(|n| n.tx_speed).sum();
         self.history.push_net(x, total_rx_speed, total_tx_speed);
 
+        // Disk throughput (bytes/s) aggregated across disks, and the
+        // 1-minute load average (UX8.3 data surface). Same bounded pattern.
+        let total_disk_read: f64 = snap.disk_io.iter().map(|d| d.read_speed).sum();
+        let total_disk_write: f64 = snap.disk_io.iter().map(|d| d.write_speed).sum();
+        self.history.push_disk(x, total_disk_read, total_disk_write);
+        self.history.push_load(x, snap.load_avg.one);
+
+        // Per-process CPU samples (UX9.1): one per visible (sorted + capped)
+        // process per tick. Bounded in the history struct itself, so memory
+        // stays flat regardless of churn.
+        for proc in &snap.processes {
+            self.proc_cpu_history.push(proc.pid, proc.cpu_usage);
+        }
+
         // Cache the sample for every widget and action in this frame.
         self.last_snapshot = Some(snap);
 
@@ -248,6 +290,11 @@ impl AppState {
     /// The process rows the UI shows: search filter + user sort, applied to
     /// one shared sample. Single source of truth for the processes widget and
     /// the Up/Down/Kill actions (selection is anchored by PID).
+    ///
+    /// The order honors [`AppState::process_sort_desc`]: descending puts the
+    /// largest values first for CPU/Memory and Z-A for PID/Name, ascending
+    /// the reverse. Descending is the default (classic boot order: CPU and
+    /// Memory high-first).
     pub fn sorted_processes<'a>(&'a self, snap: &'a SystemSnapshot) -> Vec<&'a ProcessInfo> {
         let mut items: Vec<&ProcessInfo> = if self.search_query.is_empty() {
             snap.processes.iter().collect()
@@ -258,16 +305,22 @@ impl AppState {
                 .filter(|p| p.name.to_lowercase().contains(&q))
                 .collect()
         };
-        match self.process_sort {
-            ProcessSortBy::Cpu => items.sort_by(|a, b| {
-                b.cpu_usage
-                    .partial_cmp(&a.cpu_usage)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            }),
-            ProcessSortBy::Memory => items.sort_by_key(|b| std::cmp::Reverse(b.memory)),
-            ProcessSortBy::Pid => items.sort_by_key(|a| a.pid),
-            ProcessSortBy::Name => items.sort_by_key(|a| a.name.to_lowercase()),
-        }
+        items.sort_by(|a, b| {
+            let ord = match self.process_sort {
+                ProcessSortBy::Cpu => a
+                    .cpu_usage
+                    .partial_cmp(&b.cpu_usage)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+                ProcessSortBy::Memory => a.memory.cmp(&b.memory),
+                ProcessSortBy::Pid => a.pid.cmp(&b.pid),
+                ProcessSortBy::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+            };
+            if self.process_sort_desc {
+                ord.reverse()
+            } else {
+                ord
+            }
+        });
         items
     }
 
@@ -363,8 +416,25 @@ impl AppState {
         self.process_selected_pid = Some(view[next as usize].pid);
     }
 
+    /// Cycle the process sort (the `s` key / "Sort" palette entry).
+    ///
+    /// Each press alternates between the two phases of the current column,
+    /// so the full cycle covers every (column, direction) pair:
+    ///
+    /// 1. A descending column is toggled to ascending (first press = flip the
+    ///    order on the current column, e.g. boot CPU% desc → CPU% asc);
+    /// 2. an ascending column advances to the next column (CPU% → Mem →
+    ///    PID → Name), which starts descending (next press = move on,
+    ///    descending first — the boot default).
+    ///
+    /// The column order itself is unchanged from the pre-direction cycle.
     pub fn cycle_sort(&mut self) {
-        self.process_sort = self.process_sort.next();
+        if self.process_sort_desc {
+            self.process_sort_desc = false;
+        } else {
+            self.process_sort = self.process_sort.next();
+            self.process_sort_desc = true;
+        }
         self.process_selected_pid = None;
     }
 
@@ -427,80 +497,5 @@ impl AppState {
         if self.input_mode == InputMode::CommandPalette {
             self.close_palette();
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::default_alerts;
-    use xtop_layout::{default_layouts, LayoutMode};
-
-    fn test_state(defs: Vec<LayoutDef>) -> AppState {
-        let theme = Theme {
-            name: "test".into(),
-            palette: [[0, 0, 0]; 16],
-        };
-        AppState::new(
-            Box::new(crate::providers::sysinfo::SysinfoProvider::new()),
-            vec![theme],
-            Config::default(),
-            defs,
-        )
-    }
-
-    #[test]
-    fn test_fullscreen_widget_cycle() {
-        assert_eq!(FullScreenWidget::None.next(), FullScreenWidget::Cpu);
-        assert_eq!(FullScreenWidget::Battery.next(), FullScreenWidget::None);
-    }
-
-    #[test]
-    fn test_alert_thresholds_default() {
-        let a = default_alerts();
-        assert_eq!(a.cpu_high, 90.0);
-        assert_eq!(a.mem_high, 90.0);
-        assert_eq!(a.disk_high, 90.0);
-    }
-
-    #[test]
-    fn test_config_default() {
-        let c = Config::default();
-        assert_eq!(c.theme, "x");
-        assert_eq!(c.layout_mode, LayoutMode::Dashboard);
-        assert_eq!(c.update_interval_ms, 1000);
-    }
-
-    #[test]
-    fn test_snapshot_cache_empty_before_first_tick() {
-        let state = test_state(vec![]);
-        assert!(state.snapshot_cache().is_none());
-    }
-
-    #[test]
-    fn test_custom_layout_keeps_previous_mode() {
-        let mut defs = default_layouts();
-        defs.push(LayoutDef {
-            name: "My Custom".into(),
-            root: xtop_layout::LayoutNode::Split {
-                direction: xtop_layout::Direction::Vertical,
-                areas: vec![],
-            },
-        });
-        let mut state = test_state(defs.clone());
-
-        // Default boot: Dashboard at index 0.
-        assert_eq!(state.layout_index, 0);
-        assert_eq!(state.layout_mode, LayoutMode::Dashboard);
-
-        // Custom layout (index 7) must not reset the mode to Dashboard-as-mode
-        // loss; it falls back to the previously active mode (Dashboard here).
-        assert!(state.set_layout_by_name("My Custom"));
-        assert_eq!(state.layout_mode, LayoutMode::Dashboard);
-        assert_eq!(state.current_layout_name(), "My Custom");
-
-        // Built-ins still resolve to their real mode by name.
-        assert!(state.set_layout_by_name("CPU Focus"));
-        assert_eq!(state.layout_mode, LayoutMode::CpuFocus);
     }
 }

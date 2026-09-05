@@ -5,8 +5,12 @@
 //! palette). The persisted config schema lives under `config`.
 
 pub mod app;
+#[cfg(test)]
+mod app_tests;
 pub mod history;
 mod palette;
+mod proc_history;
+mod users;
 pub mod view;
 mod widget_state;
 

@@ -6,8 +6,8 @@
 
 use super::platform::shared::read_gpu_info_nvidia_smi;
 use super::platform::{
-    read_batteries, read_cpu_governor, read_gpu_info_from_sysfs, read_interface_ips,
-    read_mount_options, read_thread_count,
+    read_batteries, read_core_temps, read_cpu_governor, read_gpu_info_from_sysfs,
+    read_interface_ips, read_mount_options, read_thread_count, RaplPower,
 };
 use std::collections::HashMap;
 use std::time::Instant;
@@ -32,6 +32,10 @@ pub struct SysinfoProvider {
     last_refresh: Instant,
     cached_sys_info: SystemInfo,
     max_processes: usize,
+    /// Linux RAPL energy sampler (UX9.1); no-op on other platforms. Sampled
+    /// in `refresh_all`, so `SystemInfo::package_power_w` is refreshed once
+    /// per tick at the same cadence as the other metrics.
+    rapl_power: RaplPower,
 }
 
 impl Default for SysinfoProvider {
@@ -65,6 +69,18 @@ impl SysinfoProvider {
             shell: std::env::var("SHELL")
                 .or_else(|_| std::env::var("ComSpec"))
                 .unwrap_or_default(),
+            // CPU model/brand from sysinfo's first logical core: a library
+            // fact on every platform sysinfo covers; empty brand -> None.
+            cpu_model: sys.cpus().first().and_then(|c| {
+                let brand = c.brand().trim().to_string();
+                if brand.is_empty() {
+                    None
+                } else {
+                    Some(brand)
+                }
+            }),
+            // Sampled per tick in `refresh_all` (RAPL deltas, Linux only).
+            package_power_w: None,
         };
         Self {
             sys,
@@ -78,6 +94,7 @@ impl SysinfoProvider {
             last_refresh: Instant::now(),
             cached_sys_info: info,
             max_processes,
+            rapl_power: RaplPower::new(),
         }
     }
 }
@@ -101,10 +118,21 @@ impl SystemDataProvider for SysinfoProvider {
             self.prev_disk_read.insert(key.clone(), usage.read_bytes);
             self.prev_disk_write.insert(key, usage.written_bytes);
         }
+
+        // Package power (UX9.1): sample the RAPL energy deltas once per
+        // refresh so `snapshot()` and `system_info()` both see the fresh
+        // value. `None` (no readable source, first baseline sample) is
+        // stored as-is — the probe never fabricates a reading, and a value
+        // that becomes unreadable drops back to `None`.
+        self.cached_sys_info.package_power_w = self.rapl_power.sample();
+
         self.last_refresh = Instant::now();
     }
 
     fn snapshot(&self) -> SystemSnapshot {
+        // Per-core temperatures (Linux coretemp probe; `None` elsewhere or
+        // when the sensors do not map onto the logical cores — UX8.3).
+        let core_temps = read_core_temps(self.sys.cpus().len());
         let cpus: Vec<CpuInfo> = self
             .sys
             .cpus()
@@ -116,6 +144,7 @@ impl SystemDataProvider for SysinfoProvider {
                 cpu_id: i,
                 frequency: c.frequency(),
                 governor: read_cpu_governor(i),
+                temp_c: core_temps.get(i).copied().flatten(),
             })
             .collect();
 

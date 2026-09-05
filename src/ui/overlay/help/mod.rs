@@ -2,28 +2,35 @@
 //!
 //! Built from the *live* `Keybindings` (config-driven), so remapped keys are
 //! always reflected here.
+//!
+//! Chrome (DR-UX3): title and key spans use the accent role, separators and
+//! secondary notes the dim role, and the block border follows the user's
+//! global `style.borders` choice — same look as widget frames.
 
 use crate::state::AppState;
 use ratatui::prelude::*;
-use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
-use xtop_widget_api::glyph::to_color;
+use xtop_widget_api::glyph::{border_for, to_color};
 
 pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     let fg = to_color(*state.current_theme.fg());
     let bg = to_color(*state.current_theme.bg());
-    let accent = to_color(state.current_theme.palette[6]);
+    let accent = to_color(*state.current_theme.accent());
+    let dim = to_color(*state.current_theme.dim());
     let kb = &state.keybindings;
 
     let mut text = vec![
         Line::from(""),
         Line::from(vec![Span::styled(
             "  Keybindings",
-            Style::default().add_modifier(Modifier::BOLD),
+            Style::default().fg(accent).add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
-        Line::from("  ─────────────────────────────────────────────"),
+        Line::from(vec![Span::styled(
+            "  ─────────────────────────────────────────────",
+            Style::default().fg(dim),
+        )]),
     ];
     push_key(&mut text, "Quit", &kb.quit, accent);
     push_key(&mut text, "Help", &kb.help, accent);
@@ -47,23 +54,40 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
     push_key(&mut text, "Select up", &kb.process_up, accent);
     push_key(&mut text, "Select down", &kb.process_down, accent);
     push_key(&mut text, "Cycle sort", &kb.cycle_sort, accent);
+    text.push(Line::from(vec![Span::styled(
+        "    first press flips the current column (▼ -> ▲); the next press\n\
+         \x20   moves to the next column, descending first (CPU% -> Mem -> PID -> Name)",
+        Style::default().fg(dim),
+    )]));
     text.extend([
         Line::from(""),
-        Line::from("  ─────────────────────────────────────────────"),
+        Line::from(vec![Span::styled(
+            "  ─────────────────────────────────────────────",
+            Style::default().fg(dim),
+        )]),
         Line::from(""),
-        Line::from("  Layout modes:"),
+        Line::from(vec![Span::styled(
+            "  Layouts",
+            Style::default().fg(accent).add_modifier(Modifier::BOLD),
+        )]),
         Line::from(format!("    Current: {}", state.current_layout_name())),
-        Line::from("    Dashboard | Vertical | Horizontal | CPU Focus"),
+        Line::from("    Modes: Dashboard | Vertical | Horizontal | CPU Focus"),
         Line::from("    Memory Focus | Network Focus | Process Focus"),
+        Line::from("    Presets: Detail Dashboard | Detail Network | Detail Processes"),
         Line::from("    + custom layouts from ~/.config/xtop/layouts/"),
         Line::from(""),
         Line::from("  https://github.com/xtop-cli/xtop"),
     ]);
 
     let block = Block::default()
-        .title("Help")
+        .title(Line::from(vec![Span::styled(
+            " Help ",
+            Style::default().fg(accent).add_modifier(Modifier::BOLD),
+        )]))
+        .title_alignment(Alignment::Center)
         .borders(Borders::ALL)
-        .border_set(border::DOUBLE)
+        .border_set(border_for(state.style.borders))
+        .border_style(Style::default().fg(accent))
         .style(Style::default().fg(fg).bg(bg));
     let p = Paragraph::new(text)
         .block(block)

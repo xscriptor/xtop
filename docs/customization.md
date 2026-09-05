@@ -210,7 +210,9 @@ copying anything.</p>
 
 <p>If you want to restore them later, copy from the repository:</p>
 
-<pre><code>cp -r assets/themes/* ~/.config/xtop/themes/</code></pre>
+<pre><code>cp -r assets/themes/* ~/.config/xtop/themes/   # Linux
+# macOS: ~/Library/Application Support/xtop/themes/
+</code></pre>
 
 <p><strong>Available themes:</strong> <code>x</code>, <code>berlin</code>, <code>bogota</code>,
 <code>helsinki</code>, <code>lahabana</code>, <code>london</code>, <code>madrid</code>,
@@ -246,11 +248,15 @@ copying anything.</p>
 
 <h3 id="layout-location">Location</h3>
 
-<p>Place layout files in:</p>
+<p>Place layout files in the platform layouts directory (config dir +
+<code>layouts</code>):</p>
 
-<pre><code>~/.config/xtop/layouts/*.jsonc
-~/.config/xtop/layouts/*.json
+<pre><code>~/.config/xtop/layouts/*.jsonc          (Linux)
+~/Library/Application Support/xtop/layouts/*.jsonc   (macOS)
+%APPDATA%\xtop\layouts\*.jsonc          (Windows)
 </code></pre>
+
+<p>Both <code>.jsonc</code> and <code>.json</code> extensions are accepted.</p>
 
 <h3 id="layout-format">Format</h3>
 
@@ -393,10 +399,11 @@ copying anything.</p>
 
 <p>The 10 built-in layouts ship in the <code>xtop-layout</code> crate
 (<code>github.com/xtop-cli/layouts</code>, folder <code>layouts/default/</code>) and are embedded in the
-binary. On startup their JSONC sources are copied to <code>~/.config/xtop/layouts/</code> as
-editable templates. Community layouts live in <code>layouts/custom/</code> of the same repo;
+binary. On startup their JSONC sources are copied to the platform layouts
+directory (see <a href="#layout-location">Location</a>) as editable templates. Community layouts
+live in <code>layouts/custom/</code> of the same repo;
 install one with <code>xtop layout install &lt;name&gt;</code> (or copy the file into
-<code>~/.config/xtop/layouts/</code>). Validate a local file with <code>xtop layout check &lt;file&gt;</code>.</p>
+the layouts directory for your platform). Validate a local file with <code>xtop layout check &lt;file&gt;</code>.</p>
 
 <p>A layout file whose <code>name</code> matches a built-in layout <strong>overrides it</strong> (e.g.
 edit <code>dashboard.jsonc</code> to customize the Dashboard). Files with new names show up as
@@ -411,7 +418,7 @@ extra layouts.</p>
 <ol>
   <li>Mode layouts (Dashboard → Vertical → Horizontal → CPU Focus → Memory Focus → Network Focus → Process Focus)</li>
   <li>Preset extras (<code>Detail Dashboard</code> → <code>Detail Network</code> → <code>Detail Processes</code>)</li>
-  <li>Any custom layout from <code>~/.config/xtop/layouts/</code> with a new name (filesystem order)</li>
+  <li>Any custom layout from the platform layouts directory with a new name (filesystem order)</li>
   <li>Custom files that reuse a built-in <code>name</code> override that built-in in place (no duplicates)</li>
   <li>Wraps back to Dashboard</li>
 </ol>

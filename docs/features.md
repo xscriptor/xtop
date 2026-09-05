@@ -55,13 +55,13 @@
 <h3 id="gpu">GPU</h3>
 
 <ul>
-  <li>GPU usage gauges: real data on Linux (NVIDIA via <code>nvidia-smi</code>, AMD/Intel via <code>/sys/class/drm</code>); stub on macOS/Windows.</li>
+  <li>GPU usage gauges: real data on Linux (NVIDIA via <code>nvidia-smi</code>, AMD/Intel via <code>/sys/class/drm</code>); NVIDIA is also detected via <code>nvidia-smi</code> on macOS. Apple GPUs expose no public utilization API, so the widget stays empty there and on Windows.</li>
 </ul>
 
 <h3 id="battery">Battery</h3>
 
 <ul>
-  <li>Battery charge level gauges: real data on Linux (<code>/sys/class/power_supply</code>); stub on macOS/Windows.</li>
+  <li>Battery charge level gauges: real data on Linux (<code>/sys/class/power_supply</code>) and macOS (<code>pmset</code>); not available on Windows yet.</li>
 </ul>
 
 <hr>

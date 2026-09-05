@@ -23,14 +23,20 @@ pub struct Users {
 }
 
 impl Users {
-    /// Load the user table from `/etc/passwd` (unix). On platforms where the
-    /// file does not exist the read fails and the table stays empty — the
-    /// numeric-uid fallback then applies everywhere.
+    /// Load the user table from `/etc/passwd` (unix) plus any platform user
+    /// directories. On macOS `/etc/passwd` only carries system accounts, so
+    /// the interactive users are merged in from Directory Services; on
+    /// platforms without either source the table stays empty and the
+    /// numeric-uid fallback applies everywhere.
     pub fn load() -> Self {
-        match fs::read_to_string("/etc/passwd") {
+        let mut users = match fs::read_to_string("/etc/passwd") {
             Ok(contents) => Self::parse(&contents),
             Err(_) => Self::default(),
+        };
+        for (uid, name) in crate::providers::sysinfo::platform::read_directory_users() {
+            users.by_uid.entry(uid).or_insert(name);
         }
+        users
     }
 
     /// Parse `passwd(5)` text into a uid → name table (pure, testable).

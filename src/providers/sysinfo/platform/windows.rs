@@ -36,6 +36,12 @@ pub fn read_thread_count(_pid: sysinfo::Pid) -> u64 {
     0
 }
 
+/// Directory Services users: not applicable on Windows; the uid table stays
+/// empty and renderers fall back to the numeric uid.
+pub fn read_directory_users() -> Vec<(u32, String)> {
+    Vec::new()
+}
+
 pub fn read_gpu_info_from_sysfs() -> Vec<GpuInfo> {
     Vec::new()
 }

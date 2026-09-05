@@ -9,7 +9,11 @@
 //! Platform notes:
 //! - **Linux**: reads `/sys` and `/proc` directly (governor, batteries,
 //!   interface addresses, threads, DRM GPUs).
-//! - **macOS**: would use IOKit / getifaddrs / getmntinfo.
+//! - **macOS**: real probes per subsystem under `macos/` — batteries via
+//!   `pmset`, interface IPs via `getifaddrs`, mount options via `mount(8)`,
+//!   thread counts via `proc_pidinfo`, Directory Services users via `dscl`.
+//!   Per-core temps, package power and GPU info stay empty by design (see
+//!   `macos/mod.rs`).
 //! - **Windows**: would use WMI / GetAdaptersAddresses / NtQueryInformationProcess.
 
 pub mod shared;

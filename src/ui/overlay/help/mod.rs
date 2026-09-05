@@ -74,7 +74,10 @@ pub fn render(f: &mut Frame, state: &AppState, area: Rect) {
         Line::from("    Modes: Dashboard | Vertical | Horizontal | CPU Focus"),
         Line::from("    Memory Focus | Network Focus | Process Focus"),
         Line::from("    Presets: Detail Dashboard | Detail Network | Detail Processes"),
-        Line::from("    + custom layouts from ~/.config/xtop/layouts/"),
+        Line::from(format!(
+            "    + custom layouts from {}/",
+            crate::config::config_dir().join("layouts").display()
+        )),
         Line::from(""),
         Line::from("  https://github.com/xtop-cli/xtop"),
     ]);

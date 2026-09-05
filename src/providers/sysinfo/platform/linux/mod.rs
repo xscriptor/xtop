@@ -20,3 +20,9 @@ pub use mounts::*;
 pub use power::*;
 pub use temps::*;
 pub use threads::*;
+
+/// Directory Services users: not applicable on Linux; the kernel reads the
+/// full user table from `/etc/passwd` itself.
+pub fn read_directory_users() -> Vec<(u32, String)> {
+    Vec::new()
+}

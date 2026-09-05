@@ -30,7 +30,8 @@ impl Debug for PluginManager {
 impl PluginManager {
     /// Create a new manager with the base directory for plugin data.
     ///
-    /// Typically: `~/.config/xtop/plugins/`
+    /// The base is the platform config dir (Linux `~/.config/xtop/plugins/`,
+    /// macOS `~/Library/Application Support/xtop/plugins/`).
     pub fn new(plugin_data_base: PathBuf) -> Self {
         Self {
             plugins: Vec::new(),

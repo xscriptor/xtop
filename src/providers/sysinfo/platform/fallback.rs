@@ -33,6 +33,12 @@ pub fn read_thread_count(_pid: sysinfo::Pid) -> u64 {
     0
 }
 
+/// Directory Services users: not applicable on fallback targets; the kernel
+/// merges nothing beyond `/etc/passwd`.
+pub fn read_directory_users() -> Vec<(u32, String)> {
+    Vec::new()
+}
+
 pub fn read_gpu_info_from_sysfs() -> Vec<GpuInfo> {
     Vec::new()
 }

@@ -38,7 +38,8 @@ A cross-platform TUI system monitor written in Rust. Uses ratatui for the termin
   <li>Network RX/TX tracking per interface</li>
   <li>Storage and Disk I/O visualization</li>
   <li>Process list with live search, CPU/Memory/PID/Name sorting and ▲/▼ direction toggling</li>
-  <li>GPU and Battery monitoring (Linux: real probes; macOS/Windows: stubs)</li>
+  <li>Battery monitoring (real probes on Linux and macOS)</li>
+  <li>GPU monitoring (NVIDIA via <code>nvidia-smi</code> on any platform; AMD/Intel via Linux sysfs probes)</li>
   <li>12 color themes with custom theme support via JSONC</li>
   <li>7 built-in layout modes + 3 Detail preset layouts, with custom layout support via JSONC</li>
   <li>Full-screen mode for any widget</li>
@@ -76,9 +77,12 @@ A cross-platform TUI system monitor written in Rust. Uses ratatui for the termin
 
 <h3>macOS and other platforms</h3>
 
-<p>Build from source (see below). The <code>install.sh</code> script detects Linux
-package managers; macOS users need a working Rust toolchain and run the
-build-from-source steps.</p>
+<p><code>install.sh</code> targets Linux package managers. On macOS (or any other
+platform) install with cargo:</p>
+
+<pre><code>cargo install --git https://github.com/xtop-cli/xtop --all-features</code></pre>
+
+<p>or build from source (see below).</p>
 
 <h3>Build from Source</h3>
 

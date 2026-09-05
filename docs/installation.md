@@ -43,8 +43,14 @@ the binary to <code>/usr/local/bin</code>.</p>
 
 <h2 id="macos">macOS</h2>
 
-<p>There is no dedicated macOS branch in <code>install.sh</code> yet; install a
-Rust toolchain (rustup) and build from source as below.</p>
+<p><code>install.sh</code> targets Linux package managers and has no macOS branch.
+Install with cargo (needs the Rust toolchain from rustup):</p>
+
+<pre><code>cargo install --git https://github.com/xtop-cli/xtop --all-features</code></pre>
+
+<p>The binary lands in <code>~/.cargo/bin</code>; make sure it is on your PATH.
+<code>--all-features</code> enables the Samurai plugin, the MCP extension, the
+blocks widget pack and the effects module.</p>
 
 <hr>
 

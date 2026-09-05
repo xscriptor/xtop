@@ -1,10 +1,12 @@
 //! Layout render engine: splits rects and dispatches widget renderers.
 //!
 //! Widgets live in packs (see the `widgets` repo); the kernel resolves
-//! `(pack, name)` at render time. Plugin widgets ([`PluginWidget`]) keep
-//! precedence over packs and can replace any name. Unknown names are
-//! reported once per process (see [`warn_unknown_widget`]).
+//! `(pack, name)` at render time from the compile-time pack catalog
+//! (`super::pack_table`). Plugin widgets ([`PluginWidget`]) keep precedence
+//! over packs and can replace any name. Unknown names are reported once per
+//! process (see [`warn_unknown_widget`]).
 
+use super::pack_table::resolve_pack;
 use crate::state::AppState;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::Frame;
@@ -15,52 +17,11 @@ use xtop_layout::{Direction, LayoutArea, LayoutConstraint, LayoutDef, LayoutNode
 use xtop_plugin_api::PluginWidget;
 use xtop_widget_api::WidgetRenderer;
 
-/// One compiled-in widget pack.
-struct Pack {
-    name: &'static str,
-    renderers: &'static HashMap<&'static str, WidgetRenderer>,
-}
-
-static BASE_PACK: OnceLock<HashMap<&'static str, WidgetRenderer>> = OnceLock::new();
-#[cfg(feature = "widget-blocks")]
-static BLOCKS_PACK: OnceLock<HashMap<&'static str, WidgetRenderer>> = OnceLock::new();
-
-/// The packs compiled into this binary, in precedence order.
-fn packs() -> &'static [Pack] {
-    static PACKS: OnceLock<Vec<Pack>> = OnceLock::new();
-    PACKS.get_or_init(|| {
-        // `mut` is only used when the blocks pack is compiled in.
-        #[cfg_attr(not(feature = "widget-blocks"), allow(unused_mut))]
-        let mut v = vec![Pack {
-            name: "default",
-            renderers: BASE_PACK.get_or_init(xtop_widgets::registry),
-        }];
-        #[cfg(feature = "widget-blocks")]
-        v.push(Pack {
-            name: "blocks",
-            renderers: BLOCKS_PACK.get_or_init(xtop_widget_blocks::registry),
-        });
-        v
-    })
-}
-
 /// Resolve the renderer for a widget name following the user's pack choice
 /// (`style.pack` global or per-widget `style.widgets.<name>.pack`). Unknown
 /// packs and names gracefully fall back to the base pack.
 fn resolve(state: &AppState, name: &str) -> Option<&'static WidgetRenderer> {
-    let packs = packs();
-    let chosen = state.style.pack_for(name);
-    if let Some(pack_name) = chosen {
-        if let Some(pack) = packs.iter().find(|p| p.name == pack_name) {
-            if let Some(r) = pack.renderers.get(name) {
-                return Some(r);
-            }
-        }
-    }
-    packs
-        .iter()
-        .find(|p| p.name == "default")
-        .and_then(|p| p.renderers.get(name))
+    resolve_pack(state.style.pack_for(name), name)
 }
 
 /// Render a layout definition within a given area.
@@ -69,7 +30,7 @@ fn resolve(state: &AppState, name: &str) -> Option<&'static WidgetRenderer> {
 /// take precedence over every pack.
 pub fn render_layout(
     f: &mut Frame,
-    state: &AppState,
+    state: &mut AppState,
     area: Rect,
     def: &LayoutDef,
     plugin_widgets: &HashMap<String, PluginWidget>,
@@ -80,19 +41,31 @@ pub fn render_layout(
 
 /// Render a single named widget (used by fullscreen and minimal views).
 /// Returns false when no renderer is registered for the name.
+///
+/// `options` are the layout node's display options of the widget instance
+/// being rendered (DR-UX1). Pack renderers see them through
+/// `WidgetState::widget_options` (widget-api) while they run; plugin widgets
+/// render against `HostState` and keep receiving `None` this cycle.
 pub fn render_named(
     f: &mut Frame,
-    state: &AppState,
+    state: &mut AppState,
     name: &str,
     area: Rect,
     plugin_widgets: &HashMap<String, PluginWidget>,
+    options: Option<&serde_json::Value>,
 ) -> bool {
     if let Some(widget) = plugin_widgets.get(name) {
         (widget.render)(f, state, area);
         return true;
     }
     if let Some(render_fn) = resolve(state, name) {
+        // Set the active widget options for the duration of this render
+        // call, then reset. Every pack render is preceded by a set, so even
+        // a panicking renderer cannot leak stale options into a later frame
+        // (the render loop does not recover panics).
+        state.active_widget_options = options.cloned();
         render_fn(f, state, area);
+        state.active_widget_options = None;
         return true;
     }
     false
@@ -100,14 +73,14 @@ pub fn render_named(
 
 fn render_node(
     f: &mut Frame,
-    state: &AppState,
+    state: &mut AppState,
     area: Rect,
     node: &LayoutNode,
     plugin_widgets: &HashMap<String, PluginWidget>,
 ) {
     match node {
-        LayoutNode::Widget { name } => {
-            render_named(f, state, name, area, plugin_widgets);
+        LayoutNode::Widget { name, options } => {
+            render_named(f, state, name, area, plugin_widgets, options.as_ref());
         }
         LayoutNode::Split { direction, areas } => {
             if areas.is_empty() {
@@ -124,6 +97,31 @@ fn render_node(
                 }
             }
         }
+    }
+}
+
+/// Find the display options of the first widget node named `name` in a
+/// layout tree (pre-order, depth first), if any.
+///
+/// Used by render paths that draw a widget by name without walking the tree
+/// themselves (fullscreen and minimal views): the widget instance's options
+/// come from the layout it would render under, or `None` when the current
+/// layout has no such node (the widget then renders with default behavior).
+pub fn widget_node_options<'a>(node: &'a LayoutNode, name: &str) -> Option<&'a serde_json::Value> {
+    match node {
+        LayoutNode::Widget {
+            name: widget_name,
+            options,
+        } => {
+            if widget_name == name {
+                options.as_ref()
+            } else {
+                None
+            }
+        }
+        LayoutNode::Split { areas, .. } => areas
+            .iter()
+            .find_map(|area| widget_node_options(&area.node, name)),
     }
 }
 
@@ -173,7 +171,7 @@ fn warn_unknown_widgets(
 ) {
     fn walk<'a>(node: &'a LayoutNode, names: &mut Vec<&'a str>) {
         match node {
-            LayoutNode::Widget { name } => names.push(name),
+            LayoutNode::Widget { name, .. } => names.push(name),
             LayoutNode::Split { areas, .. } => {
                 for area in areas {
                     walk(&area.node, names);

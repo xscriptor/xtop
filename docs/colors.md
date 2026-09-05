@@ -1,5 +1,53 @@
 <h1 align="center">Colors</h1>
 
+<p>Every theme (UX8.1 format v2) carries an explicit
+<code>background</code>/<code>foreground</code> pair plus a 16-entry
+<code>palette</code> of hex colors. The background is the screen/frame
+background every other role is measured against; the foreground is the
+primary text color. Files without the explicit pair (legacy third-party
+themes) fall back to slot 0 / slot 7 at load.</p>
+
+<p>At load the kernel <strong>normalizes</strong> the theme (UX8.2): text and
+mark roles that fail their WCAG contrast floor against the background are
+auto-lifted, deterministically and hue-preserving (see
+<a href="customization.md#contrast-normalization">customization.md —
+Contrast normalization</a>). The shipped files below stay canonical — they
+are the exact owner palettes; the in-memory theme is the guaranteed-legible
+runtime view.</p>
+
+<p>The slots are not arbitrary: each one is a fixed <strong>role</strong>
+(the widget packs read them through <code>ROLE_*</code> constants and the
+kernel chrome through <code>Theme::bg()/fg()/accent()/dim()</code>). This
+legend is the summary; the full single-source table with per-role usage
+lives in
+<a href="customization.md#palette-reference">customization.md — Palette Reference</a>.
+All palettes below keep the same slot roles (legacy background alias at 0,
+accent at 6, legacy foreground alias at 7, dim at 8, bright series ramp from
+9); only the hues differ per theme — light themes such as
+<code>helsinki</code> or <code>madrid</code> simply pick darker hues for the
+same roles so contrast works on a light background.</p>
+
+<table align="center">
+  <thead>
+    <tr><th>Slot</th><th>Role</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>background</code></td><td>explicit background — screen/frame background; <code>Theme::bg()</code></td></tr>
+    <tr><td><code>foreground</code></td><td>explicit foreground — primary text; <code>Theme::fg()</code></td></tr>
+    <tr><td><code>0</code></td><td>legacy background alias (<code>ROLE_BG</code>); matches <code>background</code> on every shipped theme except <code>x</code>, where the owner palette keeps a slightly lighter terminal black</td></tr>
+    <tr><td><code>1</code></td><td>alert (high fills, avg CPU line)</td></tr>
+    <tr><td><code>2</code></td><td>good (normal fills, RAM line, battery)</td></tr>
+    <tr><td><code>3</code></td><td>warn (gradient mid stop)</td></tr>
+    <tr><td><code>4</code></td><td>read / RX (network RX, disk reads)</td></tr>
+    <tr><td><code>5</code></td><td>write / TX / GPU (network TX, disk writes)</td></tr>
+    <tr><td><code>6</code></td><td>accent (titles, headers, selection)</td></tr>
+    <tr><td><code>7</code></td><td>legacy foreground alias (<code>ROLE_FG</code>) — text renderers use the explicit <code>foreground</code>; slot 7 is the near-white anchor of the base hue family and can legitimately equal the background (Paris does)</td></tr>
+    <tr><td><code>8</code></td><td>dim (zebra rows, separators, dividers)</td></tr>
+    <tr><td><code>9</code>-<code>15</code></td><td>bright series ramp (multi-series charts)</td></tr>
+  </tbody>
+</table>
+
+<br>
 
 <h2 align="center">X</h2>
 

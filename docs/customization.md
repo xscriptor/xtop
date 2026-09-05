@@ -29,6 +29,7 @@
       <li><a href="#layout-notes">Notes</a></li>
     </ul>
   </li>
+  <li><a href="#widget-packs">Widget Packs</a></li>
 </ul>
 
 <hr>
@@ -50,124 +51,153 @@ first run; no manual copy is needed.</p>
 
 <h3 id="theme-format">Format</h3>
 
-<p>Each theme file defines a <code>name</code> and a 16-entry <code>palette</code>. Colors are hex strings with an optional <code>#</code> prefix. Comments (<code>//</code> and <code>/* */</code>) are supported in JSONC files.</p>
+<p>Each theme file defines a <code>name</code>, an explicit
+<code>background</code>/<code>foreground</code> pair and a 16-entry
+<code>palette</code> (format v2, UX8.1). Colors are hex strings with an
+optional <code>#</code> prefix. Comments (<code>//</code> and <code>/* */</code>)
+are supported in JSONC files. The <code>background</code>/<code>foreground</code>
+keys are optional for third-party files written against the old 16-slot
+format: absent keys fall back to <code>palette[0]</code> /
+<code>palette[7]</code>. The palette entries are not arbitrary colors: every
+slot has a fixed <strong>role</strong> (see the
+<a href="#palette-reference">Palette Reference</a>), so themes stay
+interchangeable and every renderer — widget packs and kernel chrome alike —
+picks colors by role, never by taste.</p>
 
 <pre><code>{
     // my-custom-theme -- Dark background, warm accents
     "name": "my-custom-theme",
+    "background": "#1a1b1c", // screen/frame background (role bg)
+    "foreground": "#abb2bf", // primary text (role fg)
     "palette": [
-        "#1a1b1c", //  0: background
-        "#e06c75", //  1: red / alert
-        "#98c379", //  2: green (RAM gauge)
-        "#e5c07b", //  3: yellow (Swap gauge)
-        "#d19a66", //  4: orange (Storage, Network TX)
-        "#c678dd", //  5: purple (GPU)
-        "#56b6c2", //  6: cyan (accents, table headers)
-        "#abb2bf", //  7: foreground / text
-        "#3e4451", //  8: bright black (separators)
-        "#e06c75", //  9: bright red
-        "#98c379", // 10: bright green
-        "#e5c07b", // 11: bright yellow
-        "#d19a66", // 12: bright orange
-        "#c678dd", // 13: bright purple
-        "#56b6c2", // 14: bright cyan
-        "#abb2bf"  // 15: bright white
+        "#1a1b1c", //  0: legacy background alias (ROLE_BG)
+        "#e06c75", //  1: alert red (high fills, avg cpu line)
+        "#98c379", //  2: good green (normal fills, RAM line)
+        "#e5c07b", //  3: warn yellow (gradient mid stop)
+        "#d19a66", //  4: read / RX (network RX, disk reads)
+        "#c678dd", //  5: write / TX / GPU (network TX, disk writes)
+        "#56b6c2", //  6: accent (titles, headers, selection)
+        "#abb2bf", //  7: legacy foreground alias (ROLE_FG)
+        "#3e4451", //  8: dim (zebra rows, separators, dividers)
+        "#e06c75", //  9..15: bright series ramp (multi-series charts)
+        "#98c379",
+        "#e5c07b",
+        "#d19a66",
+        "#c678dd",
+        "#56b6c2",
+        "#abb2bf"
     ]
 }</code></pre>
 
+<h3 id="contrast-normalization">Contrast normalization (UX8.2)</h3>
+
+<p>Every theme is normalized once, right after parsing, against its explicit
+<code>background</code>. The engine measures the WCAG contrast ratio of each
+role and auto-lifts the colors that fail their floor, deterministically and
+hue-preserving (colors move toward white on dark backgrounds, toward black
+on light ones, in small steps until the floor clears):</p>
+
+<table>
+  <thead>
+    <tr><th>Role</th><th>Floor</th><th>Source</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>foreground text</td><td>4.5:1</td><td>explicit <code>foreground</code> (legacy files: slot 7)</td></tr>
+    <tr><td>accent</td><td>3.0:1</td><td>slot 6</td></tr>
+    <tr><td>dim</td><td>3.0:1</td><td>slot 8</td></tr>
+    <tr><td>zebra-row text</td><td>3.0:1</td><td>foreground painted over the dim stripe (slots share 8)</td></tr>
+    <tr><td>series ramp / accents</td><td>2.0:1</td><td>slots 1–5, 7, 9–15 (colored marks on the background)</td></tr>
+  </tbody>
+</table>
+
+<p>The dim floor and the zebra-row-text floor share slot 8, so they cannot
+both hold on palettes whose foreground sits close to the background:
+zebra-row text always wins, and dim keeps the highest value that still
+clears it (for the shipped <code>helsinki</code>/<code>oslo</code> palettes
+no lift is possible at all and dim keeps its canonical value). The lifted
+values replace the in-memory palette entries, so renderers keep reading
+<code>theme_palette()</code> and the role accessors unchanged — the
+<strong>shipped/user files are never rewritten</strong>: normalization
+happens at load only.</p>
+
 <h3 id="palette-reference">Palette Reference</h3>
+
+<p>This table is the single truthful role reference: the kernel theme
+accessors (<code>bg()</code>/<code>fg()</code>/<code>accent()</code>/<code>dim()</code> in
+<code>src/theme/model.rs</code>) and the widget packs' <code>ROLE_*</code> constants
+(widgets repo, <code>src/util.rs</code>) map to exactly these slots, and the usage
+column reflects what the code really paints today. If a renderer needs a
+color, it takes it from here — no undocumented palette index. Text is drawn
+with the explicit <code>foreground</code>/<code>background</code> pair
+(<code>theme_fg()</code>/<code>theme_bg()</code> on the widget contract);
+the palette slots feed the colored marks.</p>
 
 <table>
   <thead>
     <tr>
       <th>Index</th>
-      <th>Usage</th>
-      <th>Example</th>
+      <th>Role</th>
+      <th>Actual usage (kernel + widget packs)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><code>0</code></td>
-      <td>Background</td>
-      <td><code>#1a1b1c</code></td>
+      <td>legacy background alias (<code>ROLE_BG</code>)</td>
+      <td>Terminal/block background of the packs' frames; the screen itself paints the explicit <code>background</code> key (<code>Theme::bg()</code>)</td>
     </tr>
     <tr>
       <td><code>1</code></td>
-      <td>Red / Alert</td>
-      <td><code>#e06c75</code></td>
+      <td>alert (<code>ROLE_ALERT</code>)</td>
+      <td>Red/high fills: CPU/mem/swap gauges past their alert threshold, the CPU average chart line, the minimal-view CPU gauge</td>
     </tr>
     <tr>
       <td><code>2</code></td>
-      <td>Green (RAM gauge)</td>
-      <td><code>#98c379</code></td>
+      <td>good (<code>ROLE_GOOD</code>)</td>
+      <td>Green/normal fills: low gradient stop, RAM history line, battery fill, minimal-view memory gauge</td>
     </tr>
     <tr>
       <td><code>3</code></td>
-      <td>Yellow (Swap gauge)</td>
-      <td><code>#e5c07b</code></td>
+      <td>warn (<code>ROLE_WARN</code>)</td>
+      <td>Yellow fills: gradient mid stop for CPU/mem/storage/swap at or above 50% but below the alert threshold</td>
     </tr>
     <tr>
       <td><code>4</code></td>
-      <td>Orange (Storage, Network TX)</td>
-      <td><code>#d19a66</code></td>
+      <td>read/RX (<code>ROLE_RX</code>)</td>
+      <td>Download/read metrics: network RX totals/lines, disk_io read gauges</td>
     </tr>
     <tr>
       <td><code>5</code></td>
-      <td>Purple (GPU)</td>
-      <td><code>#c678dd</code></td>
+      <td>write/TX (<code>ROLE_TX</code>)</td>
+      <td>Upload/write metrics: network TX totals/lines, disk_io write gauges, GPU fill</td>
     </tr>
     <tr>
       <td><code>6</code></td>
-      <td>Cyan (Accents, table headers)</td>
-      <td><code>#56b6c2</code></td>
+      <td>accent (<code>ROLE_ACCENT</code>)</td>
+      <td>Accents: process table header/selection, help key spans, overlay titles/borders; <code>Theme::accent()</code></td>
     </tr>
     <tr>
       <td><code>7</code></td>
-      <td>Foreground / Text</td>
-      <td><code>#abb2bf</code></td>
+      <td>legacy foreground alias (<code>ROLE_FG</code>)</td>
+      <td>Near-white anchor of the base hue family; can legitimately equal the background (Paris slot 7 == its background — renderers draw text with the explicit <code>foreground</code>, <code>Theme::fg()</code>)</td>
     </tr>
     <tr>
       <td><code>8</code></td>
-      <td>Bright black (Separators)</td>
-      <td><code>#3e4451</code></td>
+      <td>dim (<code>ROLE_DIM</code>)</td>
+      <td>Dim/secondary: zebra row backgrounds, column separators, chart dividers, muted notes; <code>Theme::dim()</code></td>
     </tr>
     <tr>
-      <td><code>9</code></td>
-      <td>Bright red</td>
-      <td><code>#e06c75</code></td>
-    </tr>
-    <tr>
-      <td><code>10</code></td>
-      <td>Bright green</td>
-      <td><code>#98c379</code></td>
-    </tr>
-    <tr>
-      <td><code>11</code></td>
-      <td>Bright yellow</td>
-      <td><code>#e5c07b</code></td>
-    </tr>
-    <tr>
-      <td><code>12</code></td>
-      <td>Bright orange</td>
-      <td><code>#d19a66</code></td>
-    </tr>
-    <tr>
-      <td><code>13</code></td>
-      <td>Bright purple</td>
-      <td><code>#c678dd</code></td>
-    </tr>
-    <tr>
-      <td><code>14</code></td>
-      <td>Bright cyan</td>
-      <td><code>#56b6c2</code></td>
-    </tr>
-    <tr>
-      <td><code>15</code></td>
-      <td>Bright white</td>
-      <td><code>#abb2bf</code></td>
+      <td><code>9</code>–<code>15</code></td>
+      <td>bright series ramp (<code>ROLE_SERIES_START</code>..<code>ROLE_SERIES_END</code>)</td>
+      <td>Seven bright variants for multi-series charts (per-core history lines, cycle by series index)</td>
     </tr>
   </tbody>
 </table>
+
+<p>The shipped themes repeat the base hue family in slots 9–15 (bright
+variants of slots 1–7 in the same order), which is what makes the series
+ramp look coherent. Keep that convention when writing a theme: slots 9–15
+should stay distinguishable from each other and from slots 1–8.</p>
 
 <h3 id="starter-themes">Starter Themes</h3>
 
@@ -204,8 +234,10 @@ copying anything.</p>
 
 <ul>
   <li>Try the grayscale themes (<code>london</code>, <code>berlin</code>) as a base and add your own accent colors.</li>
-  <li>Palette entries 8–15 (the "bright" variants) are used for separators and secondary text.</li>
-  <li>Index 0 is the background, index 7 is the primary foreground — keep them readable together.</li>
+  <li>Prefer writing the explicit <code>background</code>/<code>foreground</code> keys: the fallback (slot 0/slot 7) is only for legacy files, and a slot-7 foreground can equal the background (the shipped Paris palette keeps that quirk on purpose — the explicit pair is what the roles are anchored on).</li>
+  <li>Do not fight the contrast normalizer: roles below their floor are lifted at load. Write the palette you want; the engine guarantees the floors in-memory while the file stays canonical.</li>
+  <li>Slots 9–15 are the bright series ramp: make each entry a brighter sibling of slots 1–7 in order so multi-series charts stay distinct.</li>
+  <li>Never repurpose a slot: renderers pick colors by the role table above, so a theme that reorders roles breaks every widget that reads them.</li>
 </ul>
 
 <hr>
@@ -359,9 +391,9 @@ copying anything.</p>
 
 <h3 id="starter-layouts">Starter Layouts</h3>
 
-<p>The 7 built-in layouts ship in the <code>xtop-layout</code> crate
+<p>The 10 built-in layouts ship in the <code>xtop-layout</code> crate
 (<code>github.com/xtop-cli/layouts</code>, folder <code>layouts/default/</code>) and are embedded in the
-binary. On first run their JSONC sources are copied to <code>~/.config/xtop/layouts/</code> as
+binary. On startup their JSONC sources are copied to <code>~/.config/xtop/layouts/</code> as
 editable templates. Community layouts live in <code>layouts/custom/</code> of the same repo;
 install one with <code>xtop layout install &lt;name&gt;</code> (or copy the file into
 <code>~/.config/xtop/layouts/</code>). Validate a local file with <code>xtop layout check &lt;file&gt;</code>.</p>
@@ -370,12 +402,15 @@ install one with <code>xtop layout install &lt;name&gt;</code> (or copy the file
 edit <code>dashboard.jsonc</code> to customize the Dashboard). Files with new names show up as
 extra layouts.</p>
 
-<p><strong>Built-in layouts:</strong> <code>dashboard</code>, <code>vertical</code>, <code>horizontal</code>, <code>cpu_focus</code>, <code>memory_focus</code>, <code>network_focus</code>, <code>process_focus</code>.</p>
+<p><strong>Mode layouts:</strong> <code>dashboard</code>, <code>vertical</code>, <code>horizontal</code>, <code>cpu_focus</code>, <code>memory_focus</code>, <code>network_focus</code>, <code>process_focus</code> — these seven map to the layout modes.</p>
+
+<p><strong>Preset extras:</strong> <code>detail_dashboard</code>, <code>detail_network</code>, <code>detail_processes</code> — detail-focused layouts appended after the modes (not modes themselves; they are selected by name). They exercise per-widget display options (CPU basis on <code>processes</code>, <code>cores</code>/<code>show_freq</code> on <code>cpu</code>, <code>ifaces</code> on <code>network</code>); see the per-widget options section below.</p>
 
 <h3 id="cycling-order">Cycling Order</h3>
 
 <ol>
-  <li>Built-in layouts (Dashboard → Vertical → Horizontal → CPU Focus → Memory Focus → Network Focus → Process Focus)</li>
+  <li>Mode layouts (Dashboard → Vertical → Horizontal → CPU Focus → Memory Focus → Network Focus → Process Focus)</li>
+  <li>Preset extras (<code>Detail Dashboard</code> → <code>Detail Network</code> → <code>Detail Processes</code>)</li>
   <li>Any custom layout from <code>~/.config/xtop/layouts/</code> with a new name (filesystem order)</li>
   <li>Custom files that reuse a built-in <code>name</code> override that built-in in place (no duplicates)</li>
   <li>Wraps back to Dashboard</li>
@@ -425,6 +460,109 @@ you can change in <code>config.json</code> under the <code>style</code> key (see
 <p>Glyph styles only change the look: the data behind each widget is drawn by
 the widget packs (see <a href="plugin.md">plugin.md</a> for how a plugin adds
 completely new renderers, which take precedence over packs).</p>
+
+<h3 id="per-widget-display-options">Per-widget display options</h3>
+
+<p>Beyond glyph style, every widget <em>instance</em> in a layout file can carry
+an <code>options</code> JSON object that refines how that instance draws its
+data. The layout format accepts it on widget nodes as an opaque passthrough
+(see the layouts repo, <code>docs/layout-schema.md</code>, section "Widget
+<code>options</code>"):</p>
+
+<pre><code>{
+  "name": "My Layout",
+  "root": {
+    "direction": "vertical",
+    "areas": [
+      { "widget": "header", "size": 3 },
+      { "widget": "cpu", "size": "60%", "options": { "cores": "all" } },
+      { "widget": "processes", "size": "*" }
+    ]
+  }
+}</code></pre>
+
+<ul>
+  <li>The kernel forwards each node's <code>options</code> object to the
+      widget's renderer while that instance is drawn (via
+      <code>WidgetState::widget_options</code> in the widget-api contract).
+      Multiple instances of the same widget in one layout can carry
+      different options.</li>
+  <li>No <code>options</code> key (or <code>null</code>) means the widget
+      renders exactly as before this feature — the defaults preserve the
+      current behavior byte-for-byte. Only documented keys refine a widget;
+      unknown keys are ignored.</li>
+  <li>Recognized keys are documented per widget in the widgets repo
+      (<code>docs/widgets.md</code>) as the UX milestones land them. The
+      shipped Detail presets showcase the first wave: the
+      <code>processes</code>
+      CPU basis (<code>cpu</code>: <code>"total"</code>/<code>"both"</code>),
+      the <code>cpu</code> core/frequency keys
+      (<code>cores</code>, <code>show_freq</code>) and the
+      <code>network</code> interface list (<code>ifaces</code>). Until a
+      widget documents a key, that key is inert (DR-UX2 defaults).</li>
+  <li>Fullscreen and minimal views look the options up by widget name in the
+      current layout (first matching node); when the layout has no such node
+      they use the defaults.</li>
+  <li>Plugin widget renderers see the plugin <code>HostState</code>, not
+      <code>WidgetState</code>: layout <code>options</code> are not forwarded
+      to plugins.</li>
+</ul>
+
+<hr>
+
+<h2 id="widget-packs">Widget Packs</h2>
+
+<p>Widget packs are the installable unit of widget code: each pack is a
+separate crate (<code>xtop-widget-&lt;name&gt;</code>) that registers
+renderers by widget name against the <code>xtop-widget-api</code> contract.
+The kernel ships two packs out of the box — the base pack
+(<code>default</code>, always compiled in) and the <code>blocks</code> pack
+(gated behind the <code>widget-blocks</code> Cargo feature) — and lists them
+in a single compile-time catalog
+(<code>src/ui/layout/pack_table.rs</code>, one <code>(feature, label)</code>
+row per pack), which the render engine and <code>xtop widget list</code>
+share.</p>
+
+<p>Widget-pack management mirrors the plugin workflow:</p>
+
+<table>
+  <thead>
+    <tr><th>Command</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>xtop widget list</code></td>
+      <td>List the widget packs wired into the kernel (pack-table rows whose Cargo feature is declared in the root <code>Cargo.toml</code>)</td>
+    </tr>
+    <tr>
+      <td><code>xtop widget scaffold &lt;name&gt;</code></td>
+      <td>Create a compiling single-widget pack template in <code>widgets-dev/xtop-widget-&lt;name&gt;/</code> (git-ignored)</td>
+    </tr>
+    <tr>
+      <td><code>xtop widget install &lt;name&gt;</code></td>
+      <td>Install a pack by name from <code>github.com/xtop-cli/widgets</code></td>
+    </tr>
+    <tr>
+      <td><code>xtop widget install &lt;url|path&gt;</code></td>
+      <td>Install a pack from any git URL or a local crate directory</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><code>xtop widget install</code> is a self-modifying-source workflow (the
+same spirit as <code>xtop plugin install</code>): it adds an optional
+dependency + a <code>widget-&lt;name&gt;</code> feature flag to the root
+<code>Cargo.toml</code>, appends one <code>(feature, label)</code> row and
+its registry-linking arm to the pack catalog in
+<code>src/ui/layout/pack_table.rs</code>, and runs <code>cargo check</code>.
+The pack is <strong>not enabled by default</strong>: add
+<code>widget-&lt;name&gt;</code> to the <code>[features]</code> default list
+(or build with <code>--features widget-&lt;name&gt;</code>) and rebuild.
+Once enabled, select the pack per widget with <code>style.pack</code> (all
+widgets) or <code>style.widgets.&lt;name&gt;.pack</code> (one widget), then
+place its widget names in a layout file. Authoring guidance (the pack
+contract, how packs register renderers, the renderers' options) lives in the
+widgets repo docs (<code>docs/authoring.md</code>, <code>docs/widgets.md</code>).</p>
 
 <hr>
 

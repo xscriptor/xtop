@@ -41,8 +41,14 @@ const DEFAULT_THEMES: &[(&str, &str)] = &[
 /// Version of the seeded asset templates. Bumped when the shipped defaults
 /// change so existing installs receive the new templates (without ever
 /// clobbering files the user has edited). "2": the `miami` theme joined the
-/// embedded seeding set.
-const ASSETS_VERSION: &str = "2";
+/// embedded seeding set. "3": the three preset-extra layouts joined the
+/// embedded seeding set. "4": the preset extras were renamed
+/// `detail_dashboard`, `detail_network`, `detail_processes` (display names
+/// Detail Dashboard/Network/Processes), so existing installs re-seed the
+/// renamed templates. "5": all 12 theme templates regenerated from the
+/// canonical owner palettes with the explicit `background`/`foreground`
+/// keys (UX8.1 theme format v2), so existing installs re-seed them.
+const ASSETS_VERSION: &str = "5";
 
 /// Write shipped defaults (themes and layouts) into the user config dir.
 ///
@@ -115,8 +121,9 @@ mod tests {
     }
 
     /// The embedded templates must parse through the same JSONC path the
-    /// loader uses at runtime (name + 16-entry palette), so a first run can
-    /// never seed a broken file.
+    /// loader uses at runtime (name + explicit background/foreground keys +
+    /// a 16-entry palette — the UX8.1 format v2), so a first run can never
+    /// seed a broken file.
     #[test]
     fn embedded_themes_parse_with_a_full_palette() {
         for &(name, content) in DEFAULT_THEMES {
@@ -134,6 +141,16 @@ mod tests {
                 16,
                 "{name} palette must have exactly 16 colors"
             );
+            // Format v2: every shipped template carries the explicit pair and
+            // parses through the real Theme deserializer (background falls
+            // back to slot 0, foreground to slot 7 for legacy files only).
+            assert!(
+                parsed["background"].is_string() && parsed["foreground"].is_string(),
+                "{name} must ship the explicit background/foreground keys"
+            );
+            let theme: crate::theme::Theme = serde_json::from_str(&cleaned)
+                .unwrap_or_else(|e| panic!("{name} must parse as a Theme: {e}"));
+            assert_eq!(theme.name, name);
         }
     }
 }

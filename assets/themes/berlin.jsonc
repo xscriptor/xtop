@@ -1,9 +1,10 @@
 {
     // Berlin -- Black bg, full grayscale ramp
     "name": "berlin",
+    "background": "#000000",
+    "foreground": "#cccccc",
     "palette": [
-        "#000000", "#999999", "#bbbbbb", "#dddddd", "#888888", "#aaaaaa", "#cccccc",
-        "#cccccc", "#333333", "#bbbbbb", "#dddddd", "#ffffff", "#aaaaaa", "#cccccc",
-        "#eeeeee", "#ffffff"
+        "#000000", "#999999", "#bbbbbb", "#dddddd", "#888888", "#aaaaaa", "#cccccc", "#ffffff",
+        "#333333", "#bbbbbb", "#dddddd", "#ffffff", "#aaaaaa", "#cccccc", "#eeeeee", "#ffffff"
     ]
 }

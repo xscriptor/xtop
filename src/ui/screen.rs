@@ -3,14 +3,14 @@
 //! the engine; overlays (help/palette) are kernel-owned.
 
 use crate::state::{AppState, FullScreenWidget, InputMode};
-use crate::ui::layout::{render_layout, render_named};
+use crate::ui::layout::{render_layout, render_named, widget_node_options};
 use crate::ui::overlay::{help, palette};
 use ratatui::prelude::*;
 use ratatui::Frame;
 use std::collections::HashMap;
 use xtop_layout::{detect_effective_layout, EffectiveLayout};
 use xtop_plugin_api::PluginWidget;
-use xtop_widget_api::glyph::to_color;
+use xtop_widget_api::glyph::{border_for, to_color};
 
 /// Build a plugin widget lookup map from AppState.
 ///
@@ -32,7 +32,15 @@ fn plugin_widgets(state: &AppState) -> HashMap<String, PluginWidget> {
     map
 }
 
-pub fn render(f: &mut Frame, state: &AppState) {
+/// Options of the first widget node named `name` in the current layout
+/// (DR-UX1). Fullscreen/minimal widgets are rendered by name, so their
+/// display options come from the layout they would render under; `None`
+/// when the current layout has no such node (default behavior).
+fn current_widget_options(state: &AppState, name: &str) -> Option<serde_json::Value> {
+    widget_node_options(&state.current_layout().root, name).cloned()
+}
+
+pub fn render(f: &mut Frame, state: &mut AppState) {
     let area = f.area();
 
     if area.width < 40 || area.height < 8 {
@@ -56,8 +64,11 @@ pub fn render(f: &mut Frame, state: &AppState) {
     if mode == EffectiveLayout::Minimal {
         render_minimal(f, state, area);
     } else {
-        let def = state.current_layout();
-        render_layout(f, state, area, def, &pw);
+        // The engine walks the layout tree while widget renderers run
+        // against `state`; hand it an unaliased copy of the current layout
+        // definition (small: a bounded tree of node names).
+        let def = state.current_layout().clone();
+        render_layout(f, state, area, &def, &pw);
     }
 
     if state.input_mode == InputMode::Searching {
@@ -78,13 +89,19 @@ fn render_search_overlay(f: &mut Frame, state: &AppState, area: Rect) {
     use ratatui::widgets::{Block, Borders, Paragraph};
     let fg = to_color(*state.current_theme.fg());
     let bg = to_color(*state.current_theme.bg());
+    let accent = to_color(*state.current_theme.accent());
     let search_text = format!("/{}_", state.search_query);
     let overlay = Paragraph::new(search_text)
         .style(Style::default().fg(fg).bg(bg))
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("Search Processes"),
+                .border_set(border_for(state.style.borders))
+                .border_style(Style::default().fg(accent))
+                .title(Line::from(vec![Span::styled(
+                    " Search Processes ",
+                    Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                )])),
         );
     let overlay_area = Rect {
         x: area.width.saturating_sub(40) / 2,
@@ -95,12 +112,14 @@ fn render_search_overlay(f: &mut Frame, state: &AppState, area: Rect) {
     f.render_widget(overlay, overlay_area);
 }
 
-fn render_fullscreen(f: &mut Frame, state: &AppState, area: Rect) {
+fn render_fullscreen(f: &mut Frame, state: &mut AppState, area: Rect) {
     let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
     let pw = plugin_widgets(state);
-    render_named(f, state, "header", chunks[0], &pw);
+    let header_options = current_widget_options(state, "header");
+    render_named(f, state, "header", chunks[0], &pw, header_options.as_ref());
     let name = fullscreen_widget_name(state.full_screen_widget);
-    if !render_named(f, state, name, chunks[1], &pw) {
+    let widget_options = current_widget_options(state, name);
+    if !render_named(f, state, name, chunks[1], &pw, widget_options.as_ref()) {
         let text = format!("No widget registered for '{name}'");
         let fg = to_color(*state.current_theme.fg());
         let p = ratatui::widgets::Paragraph::new(text).style(Style::default().fg(fg));
@@ -122,7 +141,7 @@ fn fullscreen_widget_name(w: FullScreenWidget) -> &'static str {
     }
 }
 
-fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
+fn render_minimal(f: &mut Frame, state: &mut AppState, area: Rect) {
     use ratatui::widgets::Gauge;
 
     let bg = to_color(*state.current_theme.bg());
@@ -136,7 +155,8 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     .split(area);
 
     let pw = plugin_widgets(state);
-    render_named(f, state, "header", chunks[0], &pw);
+    let header_options = current_widget_options(state, "header");
+    render_named(f, state, "header", chunks[0], &pw, header_options.as_ref());
 
     let Some(snap) = state.snapshot_cache() else {
         return;
@@ -152,6 +172,7 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     let cpu_gauge = Gauge::default()
         .gauge_style(
             Style::default()
+                // Role slot 1 (alert red): CPU metrics (see docs/colors.md).
                 .fg(to_color(state.current_theme.palette[1]))
                 .bg(bg),
         )
@@ -169,6 +190,7 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
     let mem_gauge = Gauge::default()
         .gauge_style(
             Style::default()
+                // Role slot 2 (green): memory metrics (see docs/colors.md).
                 .fg(to_color(state.current_theme.palette[2]))
                 .bg(bg),
         )
@@ -176,5 +198,13 @@ fn render_minimal(f: &mut Frame, state: &AppState, area: Rect) {
         .label(mem_text);
     f.render_widget(mem_gauge, chunks[2]);
 
-    render_named(f, state, "processes", chunks[3], &pw);
+    let processes_options = current_widget_options(state, "processes");
+    render_named(
+        f,
+        state,
+        "processes",
+        chunks[3],
+        &pw,
+        processes_options.as_ref(),
+    );
 }

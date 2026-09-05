@@ -37,10 +37,10 @@ A cross-platform TUI system monitor written in Rust. Uses ratatui for the termin
   <li>RAM and Swap monitoring with historical chart</li>
   <li>Network RX/TX tracking per interface</li>
   <li>Storage and Disk I/O visualization</li>
-  <li>Process list with live search and CPU/Memory/PID/Name sorting</li>
+  <li>Process list with live search, CPU/Memory/PID/Name sorting and ▲/▼ direction toggling</li>
   <li>GPU and Battery monitoring (Linux: real probes; macOS/Windows: stubs)</li>
   <li>12 color themes with custom theme support via JSONC</li>
-  <li>7 built-in layouts with custom layout support via JSONC</li>
+  <li>7 built-in layout modes + 3 Detail preset layouts, with custom layout support via JSONC</li>
   <li>Full-screen mode for any widget</li>
   <li>Configurable alert thresholds</li>
   <li>Persistent configuration</li>

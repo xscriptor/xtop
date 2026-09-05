@@ -8,6 +8,8 @@ mod governor;
 mod gpu;
 mod interfaces;
 mod mounts;
+mod power;
+mod temps;
 mod threads;
 
 pub use battery::*;
@@ -15,4 +17,6 @@ pub use governor::*;
 pub use gpu::*;
 pub use interfaces::*;
 pub use mounts::*;
+pub use power::*;
+pub use temps::*;
 pub use threads::*;

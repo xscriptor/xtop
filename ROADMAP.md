@@ -18,8 +18,8 @@ It is synced automatically with GitHub Issues.
 
 - [x] Dynamic layout manager supporting multiple modes (Dashboard, Vertical, Process Focus) (#9)
 - [x] Implement 13 built-in color schemes (`x`, `madrid`, `tokio`, etc.) (#10)
-      (12 theme files ship today, all embedded and seeded; the 0.3.0 docs
-      count 12. See docs/colors.md for the palette reference.)
+      (12 theme files ship today, all embedded and seeded; the docs count
+      12. See docs/colors.md for the palette reference.)
 - [x] Instant theme and layout cycling at runtime (#11)
 - [x] Responsive design for narrow terminals (#12)
 

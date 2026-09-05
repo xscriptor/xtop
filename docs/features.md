@@ -70,7 +70,8 @@
 
 <ul>
   <li>12 color schemes: 12 JSONC theme files ship in <code>assets/themes/</code> and are embedded in the binary as first-run seeding templates.</li>
-  <li>Custom themes defined as JSONC files with a 16-entry hex color palette.</li>
+  <li>Custom themes defined as JSONC files with an explicit background/foreground pair and a 16-entry hex color palette (legacy 16-slot-only files still load).</li>
+  <li>Always-legible themes: every theme is contrast-normalized at load (WCAG floors for text and mark roles, UX8.2); shipped files stay canonical.</li>
   <li>Instant theme cycling with <kbd>t</kbd> (next) and <kbd>T</kbd> (previous).</li>
   <li>Palette reference in <a href="colors.md">colors.md</a>.</li>
 </ul>
@@ -80,8 +81,8 @@
 <h2 id="layouts">Layouts</h2>
 
 <ul>
-  <li>7 built-in layout modes: Dashboard, Vertical, Horizontal, CPU Focus, Memory Focus, Network Focus, Process Focus.</li>
-  <li>Custom layouts defined as JSONC files with a recursive split/widget tree.</li>
+  <li>7 built-in layout modes: Dashboard, Vertical, Horizontal, CPU Focus, Memory Focus, Network Focus, Process Focus, plus 3 Detail preset layouts (<code>Detail Dashboard</code>, <code>Detail Network</code>, <code>Detail Processes</code>) that cycle after the modes and showcase per-widget display options.</li>
+  <li>Custom layouts defined as JSONC files with a recursive split/widget tree; every widget instance can carry an <code>options</code> object (CPU basis, cores, ifaces, ...) driven by the layout file.</li>
   <li>Full-screen mode for any widget toggled with <kbd>f</kbd>.</li>
   <li>Responsive design that adapts to terminal width and height automatically.</li>
   <li>Minimal fallback layout for very small terminals.</li>

@@ -11,6 +11,7 @@
   <li><a href="#command-palette">Command Palette</a></li>
   <li><a href="#full-screen-mode">Full-Screen Mode</a></li>
   <li><a href="#responsive-layouts">Responsive Layouts</a></li>
+  <li><a href="#command-line-commands">Command-Line Commands</a></li>
 </ul>
 
 <hr>
@@ -43,7 +44,7 @@
     </tr>
     <tr>
       <td><kbd>l</kbd></td>
-      <td>Next layout mode (cycles through built-in and custom layouts)</td>
+      <td>Next layout (cycles through the layout modes, the Detail presets, then custom layouts)</td>
     </tr>
     <tr>
       <td><kbd>f</kbd></td>
@@ -187,6 +188,38 @@ action and <kbd>Esc</kbd> to close.</p>
     </tr>
   </tbody>
 </table>
+
+<hr>
+
+<h2 id="command-line-commands">Command-Line Commands</h2>
+
+<p>Besides the TUI, <code>xtop</code> ships management subcommands (run
+<code>xtop --help</code> for the same list):</p>
+
+<table>
+  <thead>
+    <tr><th>Command</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>xtop mcp</code></td><td>Start the MCP server (stdio transport) for AI agents</td></tr>
+    <tr><td><code>xtop plugin list</code></td><td>List plugins wired into the kernel <code>Cargo.toml</code></td></tr>
+    <tr><td><code>xtop plugin install &lt;name|url&gt;</code></td><td>Install a plugin (self-edits the kernel manifest)</td></tr>
+    <tr><td><code>xtop plugin scaffold &lt;name&gt;</code></td><td>Create a plugin crate template in <code>plugins-dev/</code></td></tr>
+    <tr><td><code>xtop widget list</code></td><td>List widget packs wired into the kernel (Cargo features + pack table)</td></tr>
+    <tr><td><code>xtop widget install &lt;name|url|path&gt;</code></td><td>Install a widget pack (self-edits the manifest + pack table)</td></tr>
+    <tr><td><code>xtop widget scaffold &lt;name&gt;</code></td><td>Create a single-widget pack crate template in <code>widgets-dev/</code></td></tr>
+    <tr><td><code>xtop layout check &lt;file&gt;</code></td><td>Validate a layout JSONC file</td></tr>
+    <tr><td><code>xtop layout install &lt;name&gt;</code></td><td>Install a community layout from <code>github.com/xtop-cli/layouts</code></td></tr>
+  </tbody>
+</table>
+
+<p>Plugins and widget packs are compile-time: the commands register crates
+and feature flags in the kernel's sources; enable a feature in the
+<code>[features]</code> default list (or build with
+<code>--features &lt;name&gt;</code>) and rebuild to include it. Widget-pack
+details live in <a href="customization.md#widget-packs">customization.md
+(&ldquo;Widget Packs&rdquo;)</a>, plugin details in
+<a href="plugin.md">plugin.md</a>.</p>
 
 <hr>
 

@@ -57,6 +57,18 @@ impl xtop_widget_api::WidgetState for AppState {
         &self.history.net_tx
     }
 
+    fn disk_read_history(&self) -> &std::collections::VecDeque<(f64, f64)> {
+        &self.history.disk_read
+    }
+
+    fn disk_write_history(&self) -> &std::collections::VecDeque<(f64, f64)> {
+        &self.history.disk_write
+    }
+
+    fn load_history(&self) -> &std::collections::VecDeque<(f64, f64)> {
+        &self.history.load
+    }
+
     fn search_query(&self) -> &str {
         &self.search_query
     }
@@ -67,6 +79,12 @@ impl xtop_widget_api::WidgetState for AppState {
 
     fn process_sort_label(&self) -> &str {
         self.process_sort.label()
+    }
+
+    fn process_sort_desc(&self) -> bool {
+        // Descending default (CPU%/Mem high-first); the sort key toggles the
+        // direction of the active column before advancing (app.rs cycle_sort).
+        self.process_sort_desc
     }
 
     fn layout_name(&self) -> &str {
@@ -94,5 +112,26 @@ impl xtop_widget_api::WidgetState for AppState {
             return Vec::new();
         };
         self.sorted_processes(snap)
+    }
+
+    fn uid_to_name(&self, uid: u32) -> Option<String> {
+        self.users.name_for(uid).map(str::to_string)
+    }
+
+    fn process_cpu_history(&self, pid: u32) -> Vec<f64> {
+        self.proc_cpu_history.history(pid)
+    }
+
+    fn logical_core_count(&self) -> usize {
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
+    }
+
+    fn widget_options(&self) -> Option<&serde_json::Value> {
+        // Set by the render engine around each pack-widget render call (the
+        // active layout node's `options`); None outside renders, for widget
+        // instances without options, and for plugin widget renders.
+        self.active_widget_options.as_ref()
     }
 }

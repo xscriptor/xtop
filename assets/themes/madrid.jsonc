@@ -1,9 +1,10 @@
 {
     // Madrid -- Light theme (white bg), dark red accents
     "name": "madrid",
+    "background": "#fafafa",
+    "foreground": "#1a1a1a",
     "palette": [
-        "#fafafa", "#990026", "#007a28", "#8a6408", "#007a9e", "#4d2699", "#007a9e",
-        "#1a1a1a", "#4d4d4d", "#990026", "#007a28", "#8a6408", "#007a9e", "#4d2699",
-        "#007a9e", "#1a1a1a"
+        "#fafafa", "#990026", "#007a28", "#8a6408", "#007a9e", "#4d2699", "#007a9e", "#1a1a1a",
+        "#4d4d4d", "#990026", "#007a28", "#8a6408", "#007a9e", "#4d2699", "#007a9e", "#1a1a1a"
     ]
 }

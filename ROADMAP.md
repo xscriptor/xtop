@@ -45,10 +45,13 @@ It is synced automatically with GitHub Issues.
       shown, but picking which interface the kernel reports/charts is not
       configurable yet.
 - [ ] GPU usage, temperature, and VRAM monitoring (NVIDIA/AMD) (#24) — (#40)
-      Linux-only partial (nvidia-smi + /sys/class/drm); macOS/Windows stay
-      stubs.
-- [ ] Battery status monitoring (#25) — Linux probes real; macOS/Windows (#41)
-      stay stubs.
+      NVIDIA via nvidia-smi on any platform (Linux/macOS/Windows); AMD/Intel
+      stays Linux-only partial (/sys/class/drm); macOS/Windows keep the
+      honest empty state for AMD/Intel (no public utilization API).
+- [ ] Battery status monitoring (#25) — Linux probes real (/sys/class/ (#41)
+      power_supply); macOS real (pmset); Windows real aggregate battery
+      (GetSystemPowerStatus; per-battery via SetupAPI pending); fallback
+      platforms stay empty.
 - [ ] Docker container resource usage integration (#26) — Docker support was (#42)
       removed from the shared data model (api M1.4: nothing consumed it), so
       this item is parked until a real consumer appears.

@@ -42,3 +42,17 @@ plugin-samurai = ["dep:xtop-plugin-samurai"]
 mcp-extension = ["dep:xtop-extension-mcp"]
 widget-blocks = ["dep:xtop-widget-blocks"]
 effects = ["dep:xtop-effect-fade", "dep:xtop-effect-api"]
+
+[target.'cfg(windows)'.dependencies]
+# Windows probes under src/providers/sysinfo/platform/windows.rs (thin FFI,
+# mirroring the raw extern "C" style of the unix probes).
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Power",
+    "Win32_System_SystemServices",
+] }

@@ -14,7 +14,13 @@
 //!   thread counts via `proc_pidinfo`, Directory Services users via `dscl`.
 //!   Per-core temps, package power and GPU info stay empty by design (see
 //!   `macos/mod.rs`).
-//! - **Windows**: would use WMI / GetAdaptersAddresses / NtQueryInformationProcess.
+//! - **Windows**: real probes under `windows/` — batteries via
+//!   `GetSystemPowerStatus`, interface IPs via `GetAdaptersAddresses`,
+//!   mount options via `GetLogicalDrives`/`GetVolumeInformationW`, thread
+//!   counts via toolhelp snapshots, local users via `Get-LocalUser` and
+//!   process user ids exposed as numeric RIDs (sysinfo reports SIDs).
+//!   Per-core temps, package power and non-NVIDIA GPU info stay empty by
+//!   design (see `windows/mod.rs`).
 
 pub mod shared;
 

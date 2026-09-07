@@ -52,6 +52,12 @@ pub fn read_gpu_info_from_sysfs() -> Vec<GpuInfo> {
     Vec::new()
 }
 
+/// The numeric uid string sysinfo reports on unix (Windows resolves the
+/// SID to its numeric RID in the windows module instead).
+pub fn read_process_user_id(process: &sysinfo::Process) -> Option<String> {
+    process.user_id().map(|uid| uid.to_string())
+}
+
 /// Package power: see the module docs for why this stays `None`.
 pub struct RaplPower;
 

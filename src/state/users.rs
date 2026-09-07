@@ -4,9 +4,12 @@
 //! to show the real user name. That mapping is a *display* concern, so it
 //! lives here (kernel state), not in the data model. On unix platforms the
 //! names come from `/etc/passwd`, parsed once at startup into a
-//! `HashMap<u32, String>`; on platforms without `/etc/passwd` the map stays
-//! empty and renderers fall back to the numeric uid (the
-//! `WidgetState::uid_to_name` contract default is the same `None` fallback).
+//! `HashMap<u32, String>`; on macOS the interactive users are merged in
+//! from Directory Services and on Windows from the local accounts
+//! (`Get-LocalUser`, numeric RIDs); on platforms without any of those
+//! sources the map stays empty and renderers fall back to the numeric uid
+//! (the `WidgetState::uid_to_name` contract default is the same `None`
+//! fallback).
 //!
 //! The parser accepts the standard 7-field `passwd(5)` format and skips
 //! anything malformed: blank lines, `#` comments and entries without a valid
@@ -26,8 +29,9 @@ impl Users {
     /// Load the user table from `/etc/passwd` (unix) plus any platform user
     /// directories. On macOS `/etc/passwd` only carries system accounts, so
     /// the interactive users are merged in from Directory Services; on
-    /// platforms without either source the table stays empty and the
-    /// numeric-uid fallback applies everywhere.
+    /// Windows the local accounts arrive as numeric RIDs from
+    /// `Get-LocalUser`; on platforms without either source the table stays
+    /// empty and the numeric-uid fallback applies everywhere.
     pub fn load() -> Self {
         let mut users = match fs::read_to_string("/etc/passwd") {
             Ok(contents) => Self::parse(&contents),

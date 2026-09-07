@@ -1,0 +1,36 @@
+# Line endings: LF everywhere (Linux/macOS convention), on every platform.
+# `text=auto eol=lf` stores LF in the repo and checks out LF on all
+# platforms, overriding any local core.autocrlf setting.
+
+* text=auto eol=lf
+
+# Scripts always LF (shebang must stay LF-safe).
+*.sh text eol=lf
+*.ps1 text eol=lf
+
+# Windows batch files keep CRLF (parser edge cases).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary formats: never normalized, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.tar binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.a binary
+*.rlib binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

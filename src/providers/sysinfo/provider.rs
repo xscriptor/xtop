@@ -7,7 +7,7 @@
 use super::platform::shared::read_gpu_info_nvidia_smi;
 use super::platform::{
     read_batteries, read_core_temps, read_cpu_governor, read_gpu_info_from_sysfs,
-    read_interface_ips, read_mount_options, read_thread_count, RaplPower,
+    read_interface_ips, read_mount_options, read_process_user_id, read_thread_count, RaplPower,
 };
 use std::collections::HashMap;
 use std::time::Instant;
@@ -267,7 +267,9 @@ impl SystemDataProvider for SysinfoProvider {
                     name: p.name().to_string_lossy().to_string(),
                     cpu_usage: p.cpu_usage() as f64,
                     memory: p.memory(),
-                    user_id: p.user_id().map(|u| u.to_string()),
+                    // Platform probe: the numeric uid string on unix; the
+                    // SID's numeric RID on Windows (see windows.rs).
+                    user_id: read_process_user_id(p),
                     state: format!("{:?}", p.status()),
                     cmd: p
                         .cmd()

@@ -38,7 +38,7 @@ A cross-platform TUI system monitor written in Rust. Uses ratatui for the termin
   <li>Network RX/TX tracking per interface</li>
   <li>Storage and Disk I/O visualization</li>
   <li>Process list with live search, CPU/Memory/PID/Name sorting and ▲/▼ direction toggling</li>
-  <li>Battery monitoring (real probes on Linux and macOS)</li>
+  <li>Battery monitoring (real probes on Linux, macOS and Windows)</li>
   <li>GPU monitoring (NVIDIA via <code>nvidia-smi</code> on any platform; AMD/Intel via Linux sysfs probes)</li>
   <li>12 color themes with custom theme support via JSONC</li>
   <li>7 built-in layout modes + 3 Detail preset layouts, with custom layout support via JSONC</li>
